@@ -1,15 +1,28 @@
 import asyncio
 import os
 import subprocess
-
-import httpx
+import messages
+import chromadb
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from dotenv import load_dotenv
-
-import messages
+import database.database as db
 
 load_dotenv()
+
+COLLECTION_NAME = os.getenv("COLLECTION_NAME")
+CHROMA_HOST = os.getenv("CHROMA_HOST")
+CHROMA_PORT = os.getenv("CHROMA_PORT")
+THRESHOLD = 0
+
+storage_path = os.getenv('STORAGE_PATH')
+if storage_path is None:
+    raise ValueError('STORAGE_PATH environment variable is not set')
+
+client = chromadb.PersistentClient(path=storage_path)
+
+collection = client.get_or_create_collection(name="csai")
+
 TG_API_TOKEN = os.getenv('TG_API_TOKEN')
 ANSWERING_HOST = os.getenv('ANSWERING_HOST')
 DOWNLOAD_DIR = os.getenv('DOWNLOAD_DIR')
@@ -48,16 +61,19 @@ async def ask(message: types.Message):
     if user_question == '':
         await message.reply('No question provided!')
     else:
-        host = os.path.join(ANSWERING_HOST, 'ask')
-        query_params = {
-            'query': user_question,
-            'num': 5,
-        }
-        response = httpx.get(host, params=query_params, timeout=HTTP_TIMEOUT)
-        if response.status_code != 200:
-            await message.reply("Something went wrong")
-        else:
-            await message.reply(response.json()['response']['content'])
+        answer = await db.answer(user_question)
+        await message.reply(answer[0][0])
+
+
+
+@dp.message(Command('upload'))
+async def upload_text(message: types.Message):
+    text = message.text[len('/upload'):].strip()
+    if text == '':
+        await message.reply('No text provided!')
+    else:
+        await db.upload(text)
+        await message.reply('Text uploaded!')
 
 
 async def main():
@@ -66,4 +82,5 @@ async def main():
 
 
 if __name__ == '__main__':
+    print('Bot is running!')
     asyncio.run(main())

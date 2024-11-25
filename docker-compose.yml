@@ -44,7 +44,7 @@ services:
       - RETRIEVER_URL=http://retriever:8001
     depends_on:
       - answer_generation
-    command: ["python", "main.py"]
+    command: ["python", "database.py"]
 
   chromadb:
     image: chromadb/chroma:latest
