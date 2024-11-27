@@ -62,7 +62,7 @@ async def ask(message: types.Message):
         await message.reply('No question provided!')
     else:
         answer = await db.answer(user_question)
-        await message.reply(answer[0][0])
+        await message.reply(answer)
 
 
 

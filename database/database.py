@@ -1,3 +1,4 @@
+from answer_generation.answer import preprocess_answer
 from tg_bot.main import collection
 
 async def upload(text):
@@ -16,5 +17,7 @@ async def answer(text):
         ],
         n_results=1
     )
+
     print(results['documents'])
-    return results['documents']
+    a = await preprocess_answer(text, results['documents'][0][0])
+    return a
