@@ -1,1 +1,1 @@
-ASKING_PROMT = "Найди в тексте ответ на вопрос и сделай его более развёрнутым и читаемым. Строго запрещается использовать в ответе данные, которых нет в тексте. Ответ должен быть на русском. "
+ASKING_PROMT = "Find the answer to the question in the text and make it more detailed and readable. It is strictly forbidden to use data in the answer that is not in the text. The answer must be in the language in which the request is made. "

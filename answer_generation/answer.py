@@ -15,7 +15,7 @@ from openai import OpenAI
 
 async def preprocess_answer(question, information):
     client = OpenAI()
-    request = prompts.ASKING_PROMT + "Вопрос: " + question + "Информация: " + information
+    request = prompts.ASKING_PROMT + "Question: " + question + "Information: " + information
     stream = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[{"role": "user", "content": request}],
