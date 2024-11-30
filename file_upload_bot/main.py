@@ -1,5 +1,6 @@
 import asyncio
 import os
+import zipfile
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
@@ -13,16 +14,17 @@ os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
 bot = Bot(token=TG_API_TOKEN)
 dp = Dispatcher()
-ALLOWED_USERS = [414450175]
+ALLOWED_USERS = os.getenv('ALLOWED_USERS').split(',')
+ALLOWED_USERS = [int(user) for user in ALLOWED_USERS]
 
 
 def check_user(user_id):
     return user_id in ALLOWED_USERS
 
+
 def add_user(user_id):
     if user_id not in ALLOWED_USERS:
         ALLOWED_USERS.append(user_id)
-
 
 
 @dp.message(Command('start'))
@@ -45,7 +47,13 @@ async def handle_document(message: types.Message):
 
     destination_file = os.path.join(DOWNLOAD_DIR, file_name)
     await bot.download_file(file_path, destination_file)
-    await message.reply("File uploaded successfully.")
+    if zipfile.is_zipfile(destination_file):
+        with zipfile.ZipFile(destination_file, 'r') as zip_ref:
+            zip_ref.extractall(DOWNLOAD_DIR)
+        os.remove(destination_file)
+        await message.reply("Zip archive uploaded and extracted successfully.")
+    else:
+        await message.reply("File uploaded successfully.")
 
 
 @dp.message(Command('show'))
@@ -54,12 +62,19 @@ async def list_files(message: types.Message):
         await message.reply("You are not allowed to use this bot.")
         return
 
-    files = os.listdir(DOWNLOAD_DIR)
-    if not files:
+    file_list = []
+    for root, dirs, files in os.walk(DOWNLOAD_DIR):
+        for name in dirs:
+            file_list.append(os.path.relpath(os.path.join(root, name), DOWNLOAD_DIR) + "\\")
+        for name in files:
+            file_list.append(os.path.relpath(os.path.join(root, name), DOWNLOAD_DIR))
+
+    if not file_list:
         await message.reply("No files uploaded yet.")
     else:
-        file_list = "\n".join(files)
-        await message.reply(f"Uploaded files:\n{file_list}")
+        file_list_str = "\n".join(f"📁 {file}" if file.endswith('\\') else f"📄 {file}" for file in file_list)
+        await message.reply(f"Uploaded files:\n\n{file_list_str}")
+
 
 @dp.message(Command('delete_file'))
 async def delete_file(message: types.Message):
@@ -80,6 +95,7 @@ async def delete_file(message: types.Message):
         await message.reply(f"File '{file_name}' deleted successfully.")
     else:
         await message.reply(f"File '{file_name}' not found.")
+
 
 async def main():
     await bot.delete_webhook(drop_pending_updates=True)
