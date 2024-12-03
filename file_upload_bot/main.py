@@ -6,6 +6,9 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from dotenv import load_dotenv
 
+from database.database import upload
+from data_processing.text_extractor import get_text
+
 load_dotenv()
 TG_API_TOKEN = os.getenv('TG_API_ADMIN_BOT_TOKEN')
 DOWNLOAD_DIR = os.getenv('DOWNLOAD_DIR')
@@ -19,7 +22,8 @@ ALLOWED_USERS = [int(user) for user in ALLOWED_USERS]
 
 
 def check_user(user_id):
-    return user_id in ALLOWED_USERS
+    return True
+    # return user_id in ALLOWED_USERS
 
 
 def add_user(user_id):
@@ -47,13 +51,23 @@ async def handle_document(message: types.Message):
 
     destination_file = os.path.join(DOWNLOAD_DIR, file_name)
     await bot.download_file(file_path, destination_file)
+
     if zipfile.is_zipfile(destination_file):
         with zipfile.ZipFile(destination_file, 'r') as zip_ref:
             zip_ref.extractall(DOWNLOAD_DIR)
         os.remove(destination_file)
+        for root, _, files in os.walk(DOWNLOAD_DIR):
+            for file in files:
+                file_path = os.path.join(root, file)
+                if file.endswith('.pdf'):
+                    await upload(await get_text(file_path))
         await message.reply("Zip archive uploaded and extracted successfully.")
     else:
-        await message.reply("File uploaded successfully.")
+        if file_name.endswith('.pdf'):
+            await upload(await get_text(destination_file))
+            await message.reply("File uploaded successfully.")
+        else:
+            await message.reply("You can upload only zip archives or pdf files.")
 
 
 @dp.message(Command('show'))

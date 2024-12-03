@@ -2,16 +2,18 @@ import fitz
 from PIL import Image
 import easyocr
 import os
+import aiofiles
 
 reader = easyocr.Reader(['ru', 'en'])
 
 
-def get_text(pdf_path) -> str:
+async def get_text(pdf_path) -> str:
     """
     Extract text from pdf file
     :param pdf_path: path to pdf file
     :return: extracted text
     """
+    print(pdf_path)
     doc = fitz.open(pdf_path)
     res = ""
     for page_number in range(len(doc)):
@@ -25,8 +27,8 @@ def get_text(pdf_path) -> str:
             image_bytes = base_image["image"]
             image_ext = base_image["ext"]
             image_path = f"page{page_number + 1}_img{img_index + 1}.{image_ext}"
-            with open(image_path, "wb") as img_file:
-                img_file.write(image_bytes)
+            async with aiofiles.open(image_path, "wb") as img_file:
+                await img_file.write(image_bytes)
 
             with Image.open(image_path) as image:
                 image = image.convert("L")

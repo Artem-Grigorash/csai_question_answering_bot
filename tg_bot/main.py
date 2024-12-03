@@ -1,7 +1,7 @@
 import asyncio
 import os
 import subprocess
-import messages
+import tg_bot.messages as messages
 import chromadb
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
