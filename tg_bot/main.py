@@ -1,27 +1,14 @@
 import asyncio
 import os
 import subprocess
+
 import tg_bot.messages as messages
-import chromadb
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from dotenv import load_dotenv
 import database.database as db
 
 load_dotenv()
-
-COLLECTION_NAME = os.getenv("COLLECTION_NAME")
-CHROMA_HOST = os.getenv("CHROMA_HOST")
-CHROMA_PORT = os.getenv("CHROMA_PORT")
-THRESHOLD = 0
-
-storage_path = os.getenv('STORAGE_PATH')
-if storage_path is None:
-    raise ValueError('STORAGE_PATH environment variable is not set')
-
-client = chromadb.PersistentClient(path=storage_path)
-
-collection = client.get_or_create_collection(name="csai")
 
 TG_API_TOKEN = os.getenv('TG_API_TOKEN')
 ANSWERING_HOST = os.getenv('ANSWERING_HOST')
@@ -55,25 +42,14 @@ async def send_response(message: types.Message):
     await message.reply(response)
 
 
-@dp.message(Command('ask'))
+@dp.message()
 async def ask(message: types.Message):
-    user_question = message.text[len('/ask'):].strip()
+    user_question = message.text.strip()
     if user_question == '':
         await message.reply('No question provided!')
     else:
         answer = await db.answer(user_question)
-        await message.reply(answer)
-
-
-
-@dp.message(Command('upload'))
-async def upload_text(message: types.Message):
-    text = message.text[len('/upload'):].strip()
-    if text == '':
-        await message.reply('No text provided!')
-    else:
-        await db.upload(text)
-        await message.reply('Text uploaded!')
+        await message.reply(answer, parse_mode='Markdown')
 
 
 async def main():

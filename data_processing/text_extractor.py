@@ -35,7 +35,6 @@ async def get_text(pdf_path) -> str:
                 image.save(image_path)
                 ocr_result = reader.readtext(image_path, detail=0)
                 ocr_text = "\n".join(ocr_result)
-                print(ocr_text)
                 res += ocr_text
 
             os.remove(image_path)
