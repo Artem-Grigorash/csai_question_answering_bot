@@ -16,7 +16,7 @@ customEnv:
   - name: ALLOWED_USERS
     value: "4444"
   - name: STORAGE_PATH
-    value: "/db"
+    value: "db/"
   - name: TG_API_TOKEN
     valueFrom:
       secretKeyRef:
