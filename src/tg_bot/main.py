@@ -1,12 +1,11 @@
 import asyncio
 import os
 import subprocess
-
-import tg_bot.messages as messages
+import src.tg_bot.messages as messages
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from dotenv import load_dotenv
-import database.database as db
+from src.database import database as db
 
 load_dotenv()
 

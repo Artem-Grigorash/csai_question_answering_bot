@@ -4,13 +4,10 @@ from typing import List
 
 import chromadb
 
-from answer_generation.answer import preprocess_answer
+from src.answer_generation.answer import preprocess_answer
 from langchain_huggingface.embeddings import HuggingFaceEmbeddings
 from langchain_experimental.text_splitter import SemanticChunker
 from dotenv import load_dotenv
-from googletrans import Translator
-
-translator = Translator()
 
 load_dotenv()
 
