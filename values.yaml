@@ -7,8 +7,6 @@ readinessProbe:
   initialDelaySeconds: 10
   periodSeconds: 5
   failureThreshold: 3
-health:
-  path: /
 runAsUser: 101
 runAsGroup: 101
 autoscaling:

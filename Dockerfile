@@ -10,6 +10,8 @@ RUN mkdir -p $TRANSFORMERS_CACHE && chmod -R 777 $TRANSFORMERS_CACHE
 
 RUN chown 33:33 . && chmod -R 777 .
 
+EXPOSE 8080
+
 USER 33
 
 COPY --chown=33:33 requirements.txt requirements.txt
