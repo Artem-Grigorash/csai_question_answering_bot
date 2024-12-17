@@ -1,4 +1,13 @@
 containerPort: 8080
+readinessProbe:
+  exec:
+    command:
+      - sh
+      - -c
+      - "pgrep -f 'python.*main.py' || exit 1"
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  failureThreshold: 3
 health:
   path: /
 runAsUser: 101
