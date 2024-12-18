@@ -17,7 +17,7 @@ deploy:
     releases:
       - name: csai-telegram-bot # You can specify app name here
         remoteChart: oci://registry.jetbrains.team/p/cb/helm-charts/simple-worker # You can leave it or specify any your helm chart or from your repo
-        version: 0.2.1
+        version: 0.0.1
         upgradeOnChange: true
         setValueTemplates:
           image: "{{.IMAGE_FULLY_QUALIFIED}}"
