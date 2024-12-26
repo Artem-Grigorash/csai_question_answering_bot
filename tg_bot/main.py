@@ -2,11 +2,15 @@ import asyncio
 import os
 import subprocess
 
+from aiogram.types import InputMediaDocument, InputFile
+
 import tg_bot.messages as messages
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from dotenv import load_dotenv
 import database.database as db
+from aiogram.types import FSInputFile
+
 
 load_dotenv()
 
@@ -48,8 +52,16 @@ async def ask(message: types.Message):
     if user_question == '':
         await message.reply('No question provided!')
     else:
-        answer = await db.answer(user_question)
-        await message.reply(answer, parse_mode='Markdown')
+        answer, document_paths = await db.answer(user_question)
+        media = []
+        for i, document_path in enumerate(document_paths):
+            file = FSInputFile(document_path)
+            media.append(InputMediaDocument(media=file))
+        if media:
+            await message.reply(answer, parse_mode='Markdown')
+            await message.reply_media_group(media)
+        else:
+            await message.reply(answer, parse_mode='Markdown')
 
 
 async def main():

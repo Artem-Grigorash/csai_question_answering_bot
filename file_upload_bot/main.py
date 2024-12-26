@@ -50,7 +50,12 @@ async def handle_document(message: types.Message):
     file_path = file.file_path
 
     destination_file = os.path.join(DOWNLOAD_DIR, file_name)
-    await bot.download_file(file_path, destination_file)
+    try:
+        await asyncio.wait_for(bot.download_file(file_path, destination_file), timeout=120.0)
+    except asyncio.TimeoutError:
+        await message.reply("File download timed out. Please try again.")
+        return
+
 
     if zipfile.is_zipfile(destination_file):
         with zipfile.ZipFile(destination_file, 'r') as zip_ref:
@@ -60,11 +65,11 @@ async def handle_document(message: types.Message):
             for file in files:
                 file_path = os.path.join(root, file)
                 if file.endswith('.pdf'):
-                    await upload(await get_text(file_path))
+                    await upload(await get_text(file_path), file_path)
         await message.reply("Zip archive uploaded and extracted successfully.")
     else:
         if file_name.endswith('.pdf'):
-            await upload(await get_text(destination_file))
+            await upload(await get_text(destination_file), file_path)
             await message.reply("File uploaded successfully.")
         else:
             await message.reply("You can upload only zip archives or pdf files.")
