@@ -16,7 +16,7 @@ async def answer(text):
         query_texts=[
             text
         ],
-        n_results=5
+        n_results=10
     )
     print(results)
 

@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 
 from database.database import upload
 from data_processing.text_extractor import get_text
+from pathlib import Path
 
 load_dotenv()
 TG_API_TOKEN = os.getenv('TG_API_ADMIN_BOT_TOKEN')
@@ -109,6 +110,19 @@ async def delete_file(message: types.Message):
         await message.reply(f"File '{file_name}' deleted successfully.")
     else:
         await message.reply(f"File '{file_name}' not found.")
+
+
+FEEDBACK_FILE = Path("feedback.txt")
+
+@dp.message(Command("send_feedback"))
+async def send_feedback_file(message: types.Message):
+    if FEEDBACK_FILE.exists():
+        await message.reply_document(
+            document=types.FSInputFile(FEEDBACK_FILE),
+            caption="Here is the feedback file you requested."
+        )
+    else:
+        await message.reply("The feedback file does not exist.")
 
 
 async def main():

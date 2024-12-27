@@ -1,1 +1,1 @@
-ASKING_PROMT = "Find the answer to the question in the text and make it more detailed and readable. It is strictly forbidden to use data in the answer that is not in the text. The answer must be in the language in which the request is made. "
+ASKING_PROMT = "Find the answer to the question in the text and make it more detailed and readable. It is strictly forbidden to use data in the answer that is not in the text. The answer must be English in the language made. "
