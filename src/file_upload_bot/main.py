@@ -6,8 +6,8 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from dotenv import load_dotenv
 
-from data_processing.text_extractor import process_pdf
-from database.database import add_document_from_file
+from src.data_processing.text_extractor import process_pdf
+from src.database.database import add_document_from_file
 
 from phi.embedder.openai import OpenAIEmbedder
 from phi.knowledge import AssistantKnowledge
