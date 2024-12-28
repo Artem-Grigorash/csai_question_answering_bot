@@ -1,15 +1,24 @@
 import asyncio
 import os
 import zipfile
+
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from dotenv import load_dotenv
-from src.data_processing.text_extractor import get_text
-from src.database.database import upload
+
+from src.data_processing.text_extractor import process_pdf
+from src.database.database import add_document_from_file
+
+from phi.embedder.openai import OpenAIEmbedder
+from phi.knowledge import AssistantKnowledge
+from phi.vectordb.pgvector import PgVector2
 
 load_dotenv()
 TG_API_TOKEN = os.getenv('TG_API_ADMIN_BOT_TOKEN')
 DOWNLOAD_DIR = os.getenv('DOWNLOAD_DIR')
+DB_URL = os.getenv('DB_URL')
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+
 
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
@@ -18,6 +27,14 @@ dp = Dispatcher()
 ALLOWED_USERS = os.getenv('ALLOWED_USERS').split(',')
 ALLOWED_USERS = [int(user) for user in ALLOWED_USERS]
 
+knowledge_base = AssistantKnowledge(
+    vector_db=PgVector2(
+        db_url=DB_URL,
+        collection="auto_rag_docs",
+        embedder=OpenAIEmbedder(model="text-embedding-ada-002", dimensions=1536, api_key=OPENAI_API_KEY),
+    ),
+    num_documents=3,
+)
 
 def check_user(user_id):
     return True
@@ -48,7 +65,11 @@ async def handle_document(message: types.Message):
     file_path = file.file_path
 
     destination_file = os.path.join(DOWNLOAD_DIR, file_name)
-    await bot.download_file(file_path, destination_file)
+    try:
+        await asyncio.wait_for(bot.download_file(file_path, destination_file), timeout=120.0)
+    except asyncio.TimeoutError:
+        await message.reply("File download timed out. Please try again.")
+        return
 
     if zipfile.is_zipfile(destination_file):
         with zipfile.ZipFile(destination_file, 'r') as zip_ref:
@@ -58,11 +79,12 @@ async def handle_document(message: types.Message):
             for file in files:
                 file_path = os.path.join(root, file)
                 if file.endswith('.pdf'):
-                    await upload(await get_text(file_path))
+                    await add_document_from_file(knowledge_base, await process_pdf(file_path))
         await message.reply("Zip archive uploaded and extracted successfully.")
     else:
         if file_name.endswith('.pdf'):
-            await upload(await get_text(destination_file))
+            file_path = os.path.join(DOWNLOAD_DIR, file_name)
+            await add_document_from_file(knowledge_base, await process_pdf(file_path))
             await message.reply("File uploaded successfully.")
         else:
             await message.reply("You can upload only zip archives or pdf files.")
@@ -115,4 +137,5 @@ async def main():
 
 
 if __name__ == '__main__':
+    print('Bot is running!')
     asyncio.run(main())
