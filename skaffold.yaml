@@ -1,0 +1,27 @@
+---
+apiVersion: skaffold/v4beta8
+kind: Config
+metadata:
+  name: csai-telegram-bot # You can specify any app name here
+build:
+  tagPolicy:
+    sha256: {}
+  artifacts:
+  - image: registry.jetbrains.team/p/neapolis-university-pafos/containers/csai-telegram-bot # Must match you container image path from Space
+    docker: {}
+  local:
+    useDockerCLI: false
+    useBuildkit: true
+deploy:
+  helm:
+    releases:
+      - name: csai-telegram-bot # You can specify app name here
+        remoteChart: oci://registry.jetbrains.team/p/cb/helm-charts/simple-worker # You can leave it or specify any your helm chart or from your repo
+        version: 0.0.1
+        upgradeOnChange: true
+        setValueTemplates:
+          image: "{{.IMAGE_FULLY_QUALIFIED}}"
+          imagePullSecret: "{{.IMAGE_PULL_SECRET}}"
+          applicationName: "{{.APPLICATION_NAME}}"
+        valuesFiles:
+          - values.yaml

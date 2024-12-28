@@ -1,7 +1,6 @@
 import asyncio
 import os
 import subprocess
-
 import src.tg_bot.messages as messages
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
@@ -13,6 +12,7 @@ from phi.knowledge import AssistantKnowledge
 from phi.embedder.openai import OpenAIEmbedder
 from phi.vectordb.pgvector import PgVector2
 from phi.storage.assistant.postgres import PgAssistantStorage
+
 
 load_dotenv()
 
@@ -54,7 +54,6 @@ def setup() -> Assistant:
         debug_mode=True,
     )
 
-
 @dp.message(Command('start'))
 async def send_welcome(message: types.Message):
     await message.reply(messages.START_MESSAGE)
@@ -86,7 +85,6 @@ async def ask(message: types.Message):
 
 
 assistant = setup()
-
 
 async def main():
     await bot.delete_webhook(drop_pending_updates=True)

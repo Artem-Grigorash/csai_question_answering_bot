@@ -1,0 +1,47 @@
+readinessProbe:
+  exec:
+    command:
+      - sh
+      - -c
+      - "pgrep -f 'python.*main.py' || exit 1"
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  failureThreshold: 3
+runAsUser: 101
+runAsGroup: 101
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 1
+  targetCPUUtilizationPercentage: 8
+customEnv:
+  - name: COLLECTION_NAME
+    value: "test"
+  - name: DOWNLOAD_DIR
+    value: "data/"
+  - name: ALLOWED_USERS
+    value: "4444"
+  - name: STORAGE_PATH
+    value: "db/"
+  - name: TG_API_TOKEN
+    valueFrom:
+      secretKeyRef:
+        name: bot-token-super-easy-test
+        key: token
+  - name: OPENAI_API_KEY
+    valueFrom:
+      secretKeyRef:
+        name: openai-api-key
+        key: token
+  - name: TG_API_ADMIN_BOT_TOKEN
+    valueFrom:
+      secretKeyRef:
+        name: bot-token-admin
+        key: token
+resources:
+   requests:
+     cpu: 200m
+     memory: 1024Mi
+   limits:
+     cpu: 400m
+     memory: 2048Mi

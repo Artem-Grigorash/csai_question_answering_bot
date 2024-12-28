@@ -19,6 +19,7 @@ DOWNLOAD_DIR = os.getenv('DOWNLOAD_DIR')
 DB_URL = os.getenv('DB_URL')
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 
+
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
 bot = Bot(token=TG_API_TOKEN)
@@ -34,7 +35,6 @@ knowledge_base = AssistantKnowledge(
     ),
     num_documents=3,
 )
-
 
 def check_user(user_id):
     return True

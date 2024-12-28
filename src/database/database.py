@@ -19,6 +19,3 @@ async def add_document_from_file(knowledge_base, documents):
 
 def query_assistant(assistant, question: str) -> str:
     return "".join([delta for delta in assistant.run(translator.translate(question, dest='en').text)])
-
-
-
