@@ -4,7 +4,6 @@ import easyocr
 import os
 import aiofiles
 from phi.document import Document
-
 from googletrans import Translator
 from phi.document.reader.pdf import PDFReader
 

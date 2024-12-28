@@ -1,7 +1,7 @@
 import asyncio
 import os
 import subprocess
-import src.tg_bot.messages as messages
+import src.assistant_bot.messages as messages
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from dotenv import load_dotenv
@@ -13,7 +13,6 @@ from phi.embedder.openai import OpenAIEmbedder
 from phi.vectordb.pgvector import PgVector2
 from phi.storage.assistant.postgres import PgAssistantStorage
 
-
 load_dotenv()
 
 TG_API_TOKEN = os.getenv('TG_API_TOKEN')
@@ -23,7 +22,7 @@ os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
 bot = Bot(token=TG_API_TOKEN)
 dp = Dispatcher()
-DB_URL = os.getenv('DB_URL')
+DB_URL = f"postgresql+psycopg2://{os.getenv('DB_NAME')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 
 
@@ -53,6 +52,7 @@ def setup() -> Assistant:
         markdown=True,
         debug_mode=True,
     )
+
 
 @dp.message(Command('start'))
 async def send_welcome(message: types.Message):
@@ -85,6 +85,7 @@ async def ask(message: types.Message):
 
 
 assistant = setup()
+
 
 async def main():
     await bot.delete_webhook(drop_pending_updates=True)

@@ -1,14 +1,11 @@
 import asyncio
 import os
 import zipfile
-
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from dotenv import load_dotenv
-
 from src.data_processing.text_extractor import process_pdf
 from src.database.database import add_document_from_file
-
 from phi.embedder.openai import OpenAIEmbedder
 from phi.knowledge import AssistantKnowledge
 from phi.vectordb.pgvector import PgVector2
@@ -16,9 +13,8 @@ from phi.vectordb.pgvector import PgVector2
 load_dotenv()
 TG_API_TOKEN = os.getenv('TG_API_ADMIN_BOT_TOKEN')
 DOWNLOAD_DIR = os.getenv('DOWNLOAD_DIR')
-DB_URL = os.getenv('DB_URL')
+DB_URL = f"postgresql+psycopg2://{os.getenv('DB_NAME')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
-
 
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
@@ -35,6 +31,7 @@ knowledge_base = AssistantKnowledge(
     ),
     num_documents=3,
 )
+
 
 def check_user(user_id):
     return True

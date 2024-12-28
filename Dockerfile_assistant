@@ -1,4 +1,4 @@
-FROM python:3.9
+FROM python:3.10
 LABEL authors="Sofia.Petrenko"
 
 WORKDIR /csai_question_answering_bot
@@ -21,4 +21,4 @@ RUN python -m venv venv && \
 
 COPY --chown=33:33 src src
 
-CMD ["/bin/bash", "-c", "source venv/bin/activate && python src/tg_bot/main.py"]
+CMD ["/bin/bash", "-c", "source venv/bin/activate && python src/assistant_bot/main.py"]

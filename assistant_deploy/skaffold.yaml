@@ -8,7 +8,9 @@ build:
     sha256: {}
   artifacts:
   - image: registry.jetbrains.team/p/neapolis-university-pafos/containers/csai-telegram-bot # Must match you container image path from Space
-    docker: {}
+    context: ../
+    docker:
+      dockerfile: Dockerfile_assistant
   local:
     useDockerCLI: false
     useBuildkit: true

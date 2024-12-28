@@ -15,14 +15,10 @@ autoscaling:
   maxReplicas: 1
   targetCPUUtilizationPercentage: 8
 customEnv:
-  - name: COLLECTION_NAME
-    value: "test"
   - name: DOWNLOAD_DIR
     value: "data/"
   - name: ALLOWED_USERS
     value: "4444"
-  - name: STORAGE_PATH
-    value: "db/"
   - name: TG_API_TOKEN
     valueFrom:
       secretKeyRef:
@@ -38,6 +34,26 @@ customEnv:
       secretKeyRef:
         name: bot-token-admin
         key: token
+  - name: DB_NAME
+    valueFrom:
+      secretKeyRef:
+          name: admin
+          key: name
+  - name: DB_PASSWORD
+    valueFrom:
+      secretKeyRef:
+          name: admin
+          key: password
+  - name: DB_HOST
+    valueFrom:
+      secretKeyRef:
+          name: admin
+          key: host
+  - name: DB_PORT
+    valueFrom:
+      secretKeyRef:
+          name: admin
+          key: port
 resources:
    requests:
      cpu: 200m
