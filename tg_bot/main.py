@@ -2,28 +2,57 @@ import asyncio
 import os
 import subprocess
 
-from aiogram.types import InputMediaDocument, InputFile
-
 import tg_bot.messages as messages
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from dotenv import load_dotenv
 import database.database as db
-from aiogram.types import FSInputFile
-
+from phi.assistant import Assistant
+from phi.llm.openai import OpenAIChat
+from phi.knowledge import AssistantKnowledge
+from phi.embedder.openai import OpenAIEmbedder
+from phi.vectordb.pgvector import PgVector2
+from phi.storage.assistant.postgres import PgAssistantStorage
 
 load_dotenv()
 
 TG_API_TOKEN = os.getenv('TG_API_TOKEN')
-ANSWERING_HOST = os.getenv('ANSWERING_HOST')
 DOWNLOAD_DIR = os.getenv('DOWNLOAD_DIR')
-RETRIEVER_URL = os.getenv("RETRIEVER_URL")
-HTTP_TIMEOUT = 1200
 
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
 bot = Bot(token=TG_API_TOKEN)
 dp = Dispatcher()
+DB_URL = os.getenv('DB_URL')
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+
+
+def setup() -> Assistant:
+    llm = OpenAIChat(model="gpt-4o-mini", api_key=OPENAI_API_KEY)
+    # Set up the Assistant with storage, knowledge base, and tools
+    return Assistant(
+        name="auto_rag_assistant",  # Name of the Assistant
+        llm=llm,  # Language model to be used
+        storage=PgAssistantStorage(table_name="auto_rag_storage", db_url=DB_URL),
+        knowledge_base=AssistantKnowledge(
+            vector_db=PgVector2(
+                db_url=DB_URL,
+                collection="auto_rag_docs",
+                embedder=OpenAIEmbedder(model="text-embedding-ada-002", dimensions=1536, api_key=OPENAI_API_KEY),
+            ),
+            num_documents=3,
+        ),
+        instructions=[
+            "Search your knowledge base first.",
+            "If not found, print that the answer is not found.",
+            "Provide clear, concise and very detailed answers.",
+        ],
+        show_tool_calls=True,
+        search_knowledge=True,
+        read_chat_history=True,
+        markdown=True,
+        debug_mode=True,
+    )
 
 
 @dp.message(Command('start'))
@@ -52,16 +81,11 @@ async def ask(message: types.Message):
     if user_question == '':
         await message.reply('No question provided!')
     else:
-        answer, document_paths = await db.answer(user_question)
-        media = []
-        for i, document_path in enumerate(document_paths):
-            file = FSInputFile(document_path)
-            media.append(InputMediaDocument(media=file))
-        if media:
-            await message.reply(answer, parse_mode='Markdown')
-            await message.reply_media_group(media)
-        else:
-            await message.reply(answer, parse_mode='Markdown')
+        answer = db.query_assistant(assistant, user_question)
+        await message.reply(answer, parse_mode='Markdown')
+
+
+assistant = setup()
 
 
 async def main():
