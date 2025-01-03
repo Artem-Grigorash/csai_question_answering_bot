@@ -20,7 +20,7 @@ async def test_response(question, key_words, retries=3):
             print(f"Error retrieving the answer on attempt {attempt}: {e}\n")
             if attempt == retries:
                 raise AssertionError
-        await asyncio.sleep(3)
+        await asyncio.sleep(1)
 
 @pytest.mark.asyncio
 async def test():
