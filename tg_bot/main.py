@@ -1,5 +1,6 @@
 import asyncio
 import os
+import sqlite3
 import subprocess
 import tg_bot.messages as messages
 import chromadb
@@ -10,6 +11,8 @@ from dotenv import load_dotenv
 from database import database as db
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
+
+from tg_bot.feedback_db import init_db, save_feedback, save_rating
 
 load_dotenv()
 
@@ -40,6 +43,8 @@ dp = Dispatcher()
 file_path = "feedback.txt"
 last_question = ""
 last_answer = ""
+
+init_db()
 
 
 @dp.message(Command('start'))
@@ -79,21 +84,33 @@ async def ask(message: types.Message):
         keyboard = InlineKeyboardMarkup(
             inline_keyboard=[
                 [
-                    InlineKeyboardButton(text="👍 Like", callback_data="like"),
-                    InlineKeyboardButton(text="👎 Dislike", callback_data="dislike"),
+                    InlineKeyboardButton(text="😭", callback_data="1"),
+                    InlineKeyboardButton(text="😢", callback_data="2"),
+                    InlineKeyboardButton(text="😐", callback_data="3"),
+                    InlineKeyboardButton(text="🙂", callback_data="4"),
+                    InlineKeyboardButton(text="😃", callback_data="5")
                 ]
             ]
         )
         await message.reply(answer, reply_markup=keyboard)
 
 
-@dp.callback_query(lambda c: c.data == 'like')
-async def callback_like(query: types.CallbackQuery):
-    await query.message.edit_text(f"{query.message.text}\n\nYou rated this response as: 👍 Like")
+@dp.callback_query(lambda c: c.data in ['1', '2', '3', '4', '5'])
+async def callback_rating(query: types.CallbackQuery):
+    global last_question, last_answer
 
+    rating = query.data  # Строка '1', '2', '3', '4' или '5'
+    emoji_map = {
+        '1': '😭',
+        '2': '😢',
+        '3': '😐',
+        '4': '🙂',
+        '5': '😃'
+    }
+    # Сохраняем выбранную оценку
+    save_rating(int(rating))
 
-@dp.callback_query(lambda c: c.data == 'dislike')
-async def callback_dislike(query: types.CallbackQuery):
+    # Создаём клавиатуру для возможности оставить комментарий
     new_keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [
@@ -101,8 +118,10 @@ async def callback_dislike(query: types.CallbackQuery):
             ]
         ]
     )
+
+    # Меняем текст сообщения, добавляя рейтинг с соответствующим эмодзи
     await query.message.edit_text(
-        f"{query.message.text}\n\nYou rated this response as: 👎 Dislike",
+        f"{query.message.text}\n\nYou rated this response as: {emoji_map[rating]}",
         reply_markup=new_keyboard
     )
 
@@ -117,8 +136,7 @@ async def callback_feedback(query: types.CallbackQuery, state: FSMContext):
 @dp.message(FeedbackStates.waiting_for_feedback)
 async def handle_user_feedback(message: types.Message, state: FSMContext):
     user_feedback = message.text.strip()
-    with open(file_path, "w", encoding="utf-8") as file:
-        file.write(f"--User question--\n\n{last_question}\n\n--Bot answer--\n\n{last_answer}\n\n--User feedback--\n\n{user_feedback}")
+    save_feedback(last_question, last_answer, user_feedback)
     await message.reply("Thank you for your feedback! We will definitely take it into account.")
     await state.clear()
 
@@ -131,6 +149,98 @@ async def upload_text(message: types.Message):
     else:
         await db.upload(text)
         await message.reply('Text uploaded!')
+
+
+def get_all_ratings():
+    conn = sqlite3.connect("my_database.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, rating, created_at FROM ratings")
+    rows = cursor.fetchall()
+    conn.close()
+    return rows
+
+
+def get_all_feedbacks():
+    conn = sqlite3.connect("my_database.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, user_question, bot_answer, user_feedback, created_at FROM feedbacks")
+    rows = cursor.fetchall()
+    conn.close()
+    return rows
+
+
+@dp.message(Command('show_ratings'))
+async def cmd_show_ratings(message: types.Message):
+    ratings = get_all_ratings()
+    if not ratings:
+        await message.reply("Оценок пока нет, давай-ка добавим! 🚀")
+        return
+
+    response_text = "Все оценки:\n\n"
+    for row in ratings:
+        feedback_id, rating, created_at = row
+        response_text += f"ID: {feedback_id} | Rating: {rating} | Date: {created_at}\n"
+    await message.reply(response_text)
+
+
+@dp.message(Command('show_feedbacks'))
+async def cmd_show_feedbacks(message: types.Message):
+    # Достаём все записи
+    feedbacks = get_all_feedbacks()
+
+    if not feedbacks:
+        await message.reply("Слушай, пока нет ни одного фидбэка 😢")
+        return
+
+    # Формируем текст для ответа
+    response_text = "Вот что у нас имеется:\n\n"
+    for fb in feedbacks:
+        # Предположим, что в fb лежат (id, user_question, bot_answer, user_feedback, rating, created_at)
+        feedback_id = fb[0]
+        user_question = fb[1]
+        bot_answer = fb[2]
+        user_feedback = fb[3] if fb[3] else "No feedback given"
+        created_at = fb[4]
+
+        response_text += (
+            f"**Feedback ID:** {feedback_id}\n"
+            f"**Question:** {user_question}\n"
+            f"**Answer:** {bot_answer}\n"
+            f"**User Feedback:** {user_feedback}\n"
+            f"**Date:** {created_at}\n"
+            f"-----------------------------\n"
+        )
+
+    await message.reply(response_text, parse_mode="Markdown")
+
+
+def clear_ratings():
+    conn = sqlite3.connect("my_database.db")
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM ratings;")
+    cursor.execute("DELETE FROM sqlite_sequence WHERE name='ratings';")  # Сброс автоинкремента (SQLite)
+    conn.commit()
+    conn.close()
+
+
+def clear_feedbacks():
+    conn = sqlite3.connect("my_database.db")
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM feedbacks;")
+    cursor.execute("DELETE FROM sqlite_sequence WHERE name='feedbacks';")  # Сброс автоинкремента (SQLite)
+    conn.commit()
+    conn.close()
+
+@dp.message(Command('clear_ratings'))
+async def cmd_clear_ratings(message: types.Message):
+    clear_ratings()
+    await message.reply("Таблица с оценками обнулилась, братишка! 🍏💨")
+
+
+@dp.message(Command('clear_feedbacks'))
+async def cmd_clear_feedbacks(message: types.Message):
+    clear_feedbacks()
+    await message.reply("Таблица с письменными фидбэками стала девственно чистой! 🍏💨")
 
 
 async def main():
