@@ -1,10 +1,10 @@
 import sqlite3
 
+
 def init_db():
     conn = sqlite3.connect("my_database.db")
     cursor = conn.cursor()
 
-    # Таблица для оценок (1–5)
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS ratings (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -13,7 +13,6 @@ def init_db():
     );
     """)
 
-    # Таблица для письменного фидбэка
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS feedbacks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -27,8 +26,8 @@ def init_db():
     conn.commit()
     conn.close()
 
+
 def save_rating(rating: int):
-    """Сохраняем оценку в таблицу ratings."""
     conn = sqlite3.connect("my_database.db")
     cursor = conn.cursor()
     cursor.execute("""
@@ -48,3 +47,36 @@ def save_feedback(user_question, bot_answer, user_feedback):
     conn.commit()
     conn.close()
 
+
+def get_all_ratings():
+    conn = sqlite3.connect("my_database.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, rating, created_at FROM ratings")
+    rows = cursor.fetchall()
+    conn.close()
+    return rows
+
+
+def get_all_feedbacks():
+    conn = sqlite3.connect("my_database.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, user_question, bot_answer, user_feedback, created_at FROM feedbacks")
+    rows = cursor.fetchall()
+    conn.close()
+    return rows
+
+def clear_ratings():
+    conn = sqlite3.connect("my_database.db")
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM ratings;")
+    cursor.execute("DELETE FROM sqlite_sequence WHERE name='ratings';")
+    conn.commit()
+    conn.close()
+
+def clear_feedbacks():
+    conn = sqlite3.connect("my_database.db")
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM feedbacks;")
+    cursor.execute("DELETE FROM sqlite_sequence WHERE name='feedbacks';")
+    conn.commit()
+    conn.close()
