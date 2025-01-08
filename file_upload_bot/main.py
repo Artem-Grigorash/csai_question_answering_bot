@@ -191,10 +191,16 @@ async def cmd_clear_feedbacks(message: types.Message):
 @dp.message(Command('launch_tests'))
 async def launch_tests(message: types.Message):
     response = ""
+    passed = 0
     errors = await test()
     for error in errors:
-        response += "🟥 " if error[1] == "test failed" else "🟩 "
+        if error[1] == "test failed":
+            response += "🟥 "
+        else:
+            response += "🟩 "
+            passed += 1
         response += error[0] + "\n\n" + error[1] + "\n\n\n\n"
+    response += f"Tests passed: {passed} / {len(errors)}"
     await message.reply(response)
 
 
