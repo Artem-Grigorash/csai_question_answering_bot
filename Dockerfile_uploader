@@ -9,6 +9,10 @@ ENV HF_HOME=/csai_question_answering_bot/.cache/huggingface
 RUN mkdir -p $TRANSFORMERS_CACHE && chmod -R 777 $TRANSFORMERS_CACHE
 
 RUN chown 33:33 . && chmod -R 777 .
+RUN mkdir -p /var/www
+RUN chgrp www-data /var/www
+RUN chmod g+w /var/www
+
 
 EXPOSE 8080
 
