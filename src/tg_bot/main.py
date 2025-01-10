@@ -1,13 +1,13 @@
 import asyncio
 import os
 import subprocess
-import tg_bot.messages as messages
+import src.tg_bot.messages as messages
 import chromadb
 from aiogram.filters import Command
 from aiogram import Bot, Dispatcher, types
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from dotenv import load_dotenv
-from database import database as db
+from src.database import database as db
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 

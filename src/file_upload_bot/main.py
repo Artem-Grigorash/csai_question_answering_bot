@@ -6,8 +6,8 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from dotenv import load_dotenv
 
-from database.database import upload
-from data_processing.text_extractor import get_text
+from src.database.database import upload
+from src.data_processing.text_extractor import get_text
 from pathlib import Path
 
 load_dotenv()

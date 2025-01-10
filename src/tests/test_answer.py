@@ -1,4 +1,4 @@
-from database import database as db
+from src.database import database as db
 from test_data import test_data
 import pytest
 import asyncio

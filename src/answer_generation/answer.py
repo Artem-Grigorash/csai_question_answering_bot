@@ -1,6 +1,6 @@
 import logging
 import os
-import answer_generation.prompts as prompts
+import src.answer_generation.prompts as prompts
 import openai
 from dotenv import load_dotenv
 
