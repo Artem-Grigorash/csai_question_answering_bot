@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS feedbacks (
     user_question TEXT NOT NULL,
     bot_answer TEXT NOT NULL,
     user_feedback TEXT,
+    rate INTEGER,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
