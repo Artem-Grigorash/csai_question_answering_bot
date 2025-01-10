@@ -1,13 +1,14 @@
+import json
+import os
+
+import aiofiles
+import easyocr
 import fitz
 from PIL import Image
-import easyocr
-import os
-import aiofiles
 from phi.document import Document
-from googletrans import Translator
 from phi.document.reader.pdf import PDFReader
 
-translator = Translator()
+from src.utils.translator import translate_text_with_openai
 
 reader = easyocr.Reader(['ru', 'en'])
 
@@ -39,7 +40,7 @@ async def process_pdf(pdf_path, chunk=True):
 
             os.remove(image_path)
 
-        translated_text = translator.translate(text, dest='en').text
+        translated_text = translate_text_with_openai(text)
         doc_name = pdf_path.split("/")[-1].split(".")[0].replace(" ", "_")
         documents.append(Document(
             name=doc_name,
@@ -55,4 +56,23 @@ async def process_pdf(pdf_path, chunk=True):
             chunked_documents.extend(pdf_reader.chunk_document(document))
         return chunked_documents
 
+    return documents
+
+async def process_json(json_path):
+    with open(json_path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    documents = []
+    id = 0
+    json_name = json_path.split("/")[-1].split(".")[0].replace(" ", "_")
+    for message in data['messages']:
+        text = f'DATE: {message['date']}\n{message['text']}'
+        print(text)
+        translated_text = translate_text_with_openai(text)
+        documents.append(Document(
+            name=json_name,
+            id=f"{json_name}_{id}",
+            meta_data={"id": id},
+            content=translated_text,
+        ))
+        id += 1
     return documents

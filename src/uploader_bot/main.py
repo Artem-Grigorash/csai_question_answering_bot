@@ -4,7 +4,7 @@ import zipfile
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from dotenv import load_dotenv
-from src.data_processing.text_extractor import process_pdf
+from src.data_processing.text_extractor import process_pdf, process_json
 from src.database.database import add_document_from_file
 from phi.embedder.openai import OpenAIEmbedder
 from phi.knowledge import AssistantKnowledge
@@ -77,56 +77,19 @@ async def handle_document(message: types.Message):
                 file_path = os.path.join(root, file)
                 if file.endswith('.pdf'):
                     await add_document_from_file(knowledge_base, await process_pdf(file_path))
+                elif file.endswith('.json'):
+                    await add_document_from_file(knowledge_base, await process_json(file_path))
         await message.reply("Zip archive uploaded and extracted successfully.")
+    elif file_name.endswith('.pdf'):
+        file_path = os.path.join(DOWNLOAD_DIR, file_name)
+        await add_document_from_file(knowledge_base, await process_pdf(file_path))
+        await message.reply("File uploaded successfully.")
+    elif file_name.endswith('.json'):
+        file_path = os.path.join(DOWNLOAD_DIR, file_name)
+        await add_document_from_file(knowledge_base, await process_json(file_path))
+        await message.reply("File uploaded successfully.")
     else:
-        if file_name.endswith('.pdf'):
-            file_path = os.path.join(DOWNLOAD_DIR, file_name)
-            await add_document_from_file(knowledge_base, await process_pdf(file_path))
-            await message.reply("File uploaded successfully.")
-        else:
-            await message.reply("You can upload only zip archives or pdf files.")
-
-
-@dp.message(Command('show'))
-async def list_files(message: types.Message):
-    if not check_user(message.from_user.id):
-        await message.reply("You are not allowed to use this bot.")
-        return
-
-    file_list = []
-    for root, dirs, files in os.walk(DOWNLOAD_DIR):
-        for name in dirs:
-            file_list.append(os.path.relpath(os.path.join(root, name), DOWNLOAD_DIR) + "\\")
-        for name in files:
-            file_list.append(os.path.relpath(os.path.join(root, name), DOWNLOAD_DIR))
-
-    if not file_list:
-        await message.reply("No files uploaded yet.")
-    else:
-        file_list_str = "\n".join(f"📁 {file}" if file.endswith('\\') else f"📄 {file}" for file in file_list)
-        await message.reply(f"Uploaded files:\n\n{file_list_str}")
-
-
-@dp.message(Command('delete_file'))
-async def delete_file(message: types.Message):
-    if not check_user(message.from_user.id):
-        await message.reply("You are not allowed to use this bot.")
-        return
-
-    command_args = message.text.split(maxsplit=1)
-    if len(command_args) > 1:
-        file_name = command_args[1]
-    else:
-        await message.reply("Please specify the file name to delete.")
-        return
-
-    file_path = os.path.join(DOWNLOAD_DIR, file_name)
-    if os.path.exists(file_path):
-        os.remove(file_path)
-        await message.reply(f"File '{file_name}' deleted successfully.")
-    else:
-        await message.reply(f"File '{file_name}' not found.")
-
+        await message.reply("You can upload only zip archives, pdf and json files.")
 
 async def main():
     await bot.delete_webhook(drop_pending_updates=True)

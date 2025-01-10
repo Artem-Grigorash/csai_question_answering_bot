@@ -1,17 +1,19 @@
 import asyncio
 import os
 import subprocess
-import src.assistant_bot.messages as messages
+
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from dotenv import load_dotenv
-from src.database import database as db
 from phi.assistant import Assistant
-from phi.llm.openai import OpenAIChat
-from phi.knowledge import AssistantKnowledge
 from phi.embedder.openai import OpenAIEmbedder
-from phi.vectordb.pgvector import PgVector2
+from phi.knowledge import AssistantKnowledge
+from phi.llm.openai import OpenAIChat
 from phi.storage.assistant.postgres import PgAssistantStorage
+from phi.vectordb.pgvector import PgVector2
+
+import src.assistant_bot.messages as messages
+from src.utils.translator import translate_text_with_openai
 
 load_dotenv()
 
@@ -28,10 +30,9 @@ OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 
 def setup() -> Assistant:
     llm = OpenAIChat(model="gpt-4o-mini", api_key=OPENAI_API_KEY)
-    # Set up the Assistant with storage, knowledge base, and tools
     return Assistant(
-        name="auto_rag_assistant",  # Name of the Assistant
-        llm=llm,  # Language model to be used
+        name="auto_rag_assistant",
+        llm=llm,
         storage=PgAssistantStorage(table_name="auto_rag_storage", db_url=DB_URL),
         knowledge_base=AssistantKnowledge(
             vector_db=PgVector2(
@@ -39,19 +40,27 @@ def setup() -> Assistant:
                 collection="auto_rag_docs",
                 embedder=OpenAIEmbedder(model="text-embedding-ada-002", dimensions=1536, api_key=OPENAI_API_KEY),
             ),
-            num_documents=3,
+            num_documents=5,
         ),
+        description='You are assistant for the CSAI program at Neapolis University in Cyprus',
         instructions=[
             "Search your knowledge base first.",
-            "If not found, print that the answer is not found.",
+            "First and foremost, interpret the question as being either related to the CSAI (Computer Science and Artificial Intelligence) program at Neapolis University or to the student life at this university in Cyprus.",
+            "If you know the answer, provide it.",
+            "If you don't know the answer, print 'The answer was not found'.",
+            "Provide the answer in telegram format.",
             "Provide clear, concise and very detailed answers.",
         ],
         show_tool_calls=True,
         search_knowledge=True,
         read_chat_history=True,
-        markdown=True,
         debug_mode=True,
+
     )
+
+
+def query_assistant(assistant, question: str) -> str:
+    return "".join([delta for delta in assistant.run(question)])
 
 
 @dp.message(Command('start'))
@@ -76,12 +85,13 @@ async def send_response(message: types.Message):
 
 @dp.message()
 async def ask(message: types.Message):
-    user_question = message.text.strip()
+    user_question = await translate_text_with_openai(message.text.strip())
     if user_question == '':
         await message.reply('No question provided!')
     else:
-        answer = db.query_assistant(assistant, user_question)
-        await message.reply(answer, parse_mode='Markdown')
+        print(user_question)
+        answer = query_assistant(assistant, user_question)
+        await message.reply(answer, parse_mode="Markdown")
 
 
 assistant = setup()
