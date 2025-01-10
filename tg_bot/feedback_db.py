@@ -19,6 +19,7 @@ def init_db():
             user_question TEXT NOT NULL,
             bot_answer TEXT NOT NULL,
             user_feedback TEXT,
+            rate INTEGER,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
         """)
@@ -37,13 +38,13 @@ def save_rating(rating: int):
     conn.close()
 
 
-def save_feedback(user_question, bot_answer, user_feedback):
+def save_feedback(user_question, bot_answer, user_feedback, rate):
     conn = sqlite3.connect("my_database.db")
     cursor = conn.cursor()
     cursor.execute("""
-        INSERT INTO feedbacks (user_question, bot_answer, user_feedback)
-        VALUES (?, ?, ?)
-    """, (user_question, bot_answer, user_feedback))
+        INSERT INTO feedbacks (user_question, bot_answer, user_feedback, rate)
+        VALUES (?, ?, ?, ?)
+    """, (user_question, bot_answer, user_feedback, rate))
     conn.commit()
     conn.close()
 
@@ -60,7 +61,7 @@ def get_all_ratings():
 def get_all_feedbacks():
     conn = sqlite3.connect("my_database.db")
     cursor = conn.cursor()
-    cursor.execute("SELECT id, user_question, bot_answer, user_feedback, created_at FROM feedbacks")
+    cursor.execute("SELECT id, user_question, bot_answer, user_feedback, rate, created_at FROM feedbacks")
     rows = cursor.fetchall()
     conn.close()
     return rows

@@ -1,4 +1,14 @@
 START_MESSAGE = "Hello!\nTo ask a question use /ask\nTo see the full list of commands use /help"
+HELP_MESSAGE = (
+    "Welcome to the CSAI Q&A Bot! Here's how I can assist you:\n\n"
+    "💬 /ask – Submit a question, and I will provide you with a detailed response.\n"
+    "📡 /ping – Check the server connection to ensure everything is running smoothly.\n\n"
+    "This bot is brought to you by:\n"
+    "- Artem Abaturov (https://github.com/artem3605)\n"
+    "- Artem Grigorash (https://github.com/Artem-Grigorash)\n"
+    "- Sofya Petrenko (https://github.com/petrenkosofya)\n\n"
+    "Feel free to explore the commands and make the most of this bot! 🚀"
+)
 
 CONNECTION_SUCCESSFUL = "Server is connected"
 CONNECTION_FAILED = "Server is not connected"

@@ -42,6 +42,7 @@ dp = Dispatcher()
 file_path = "feedback.txt"
 last_question = ""
 last_answer = ""
+last_rate = 0
 
 init_db()
 
@@ -55,7 +56,7 @@ async def send_welcome(message: types.Message):
 
 @dp.message(Command('help'))
 async def send_welcome(message: types.Message):
-    await message.reply("Hi!")
+    await message.reply(messages.HELP_MESSAGE)
 
 
 @dp.message(Command('ping'))
@@ -110,7 +111,7 @@ async def ask(message: types.Message):
 
 @dp.callback_query(lambda c: c.data in ['1', '2', '3', '4', '5'])
 async def callback_rating(query: types.CallbackQuery):
-    global last_question, last_answer
+    global last_question, last_answer, last_rate
 
     rating = query.data
     emoji_map = {
@@ -120,6 +121,8 @@ async def callback_rating(query: types.CallbackQuery):
         '4': '🙂',
         '5': '😃'
     }
+
+    last_rate = int(rating)
     save_rating(int(rating))
 
     new_keyboard = InlineKeyboardMarkup(
@@ -140,7 +143,7 @@ async def callback_feedback(query: types.CallbackQuery, state: FSMContext):
 @dp.message(FeedbackStates.waiting_for_feedback)
 async def handle_user_feedback(message: types.Message, state: FSMContext):
     user_feedback = message.text.strip()
-    save_feedback(last_question, last_answer, user_feedback)
+    save_feedback(last_question, last_answer, user_feedback, last_rate)
     await message.reply(messages.AFTER_FEEDBACK)
     await state.clear()
 
@@ -175,13 +178,15 @@ async def cmd_show_feedbacks(message: types.Message):
         user_question = fb[1]
         bot_answer = fb[2]
         user_feedback = fb[3]
-        created_at = fb[4]
+        rating = fb[4]
+        created_at = fb[5]
 
         response_text += (
             f"\n**Feedback ID:** {feedback_id}\n"
             f"\n**Question:** {user_question}\n"
             f"\n**Answer:** {bot_answer}\n"
             f"\n**User Feedback:** {user_feedback}\n"
+            f"\n**Rating:** {rating}\n"
             f"\n**Date:** {created_at}\n"
             f"-----------------------------\n\n"
         )
