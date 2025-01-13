@@ -1,18 +1,20 @@
 import asyncio
 import os
 import zipfile
+from pathlib import Path
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from dotenv import load_dotenv
+from phi.embedder.openai import OpenAIEmbedder
+from phi.knowledge import AssistantKnowledge
+from phi.vectordb.pgvector import PgVector2
 
-from src.database.database import upload
-from src.data_processing.text_extractor import get_text
-from pathlib import Path
-
-from tests.test_answer import test
-from tg_bot import messages
-from tg_bot.feedback_db import clear_ratings, clear_feedbacks, get_all_feedbacks, get_all_ratings
+from src.assistant_bot import messages
+from src.assistant_bot.feedback_db import get_all_ratings, get_all_feedbacks, clear_ratings, clear_feedbacks
+from src.data_processing.text_extractor import process_pdf, process_json
+from src.database.database import add_document_from_file
+from src.tests.test_answer import test
 
 load_dotenv()
 TG_API_TOKEN = os.getenv('TG_API_ADMIN_BOT_TOKEN')
@@ -24,6 +26,17 @@ bot = Bot(token=TG_API_TOKEN)
 dp = Dispatcher()
 ALLOWED_USERS = os.getenv('ALLOWED_USERS').split(',')
 ALLOWED_USERS = [int(user) for user in ALLOWED_USERS]
+DB_URL = f"postgresql+psycopg2://{os.getenv('DB_NAME')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+
+knowledge_base = AssistantKnowledge(
+    vector_db=PgVector2(
+        db_url=DB_URL,
+        collection="auto_rag_docs",
+        embedder=OpenAIEmbedder(model="text-embedding-ada-002", dimensions=1536, api_key=OPENAI_API_KEY),
+    ),
+    num_documents=3,
+)
 
 
 def check_user(user_id):
@@ -55,7 +68,11 @@ async def handle_document(message: types.Message):
     file_path = file.file_path
 
     destination_file = os.path.join(DOWNLOAD_DIR, file_name)
-    await bot.download_file(file_path, destination_file)
+    try:
+        await asyncio.wait_for(bot.download_file(file_path, destination_file), timeout=120.0)
+    except asyncio.TimeoutError:
+        await message.reply("File download timed out. Please try again.")
+        return
 
     if zipfile.is_zipfile(destination_file):
         with zipfile.ZipFile(destination_file, 'r') as zip_ref:
@@ -65,14 +82,20 @@ async def handle_document(message: types.Message):
             for file in files:
                 file_path = os.path.join(root, file)
                 if file.endswith('.pdf'):
-                    await upload(await get_text(file_path))
+                    await add_document_from_file(knowledge_base, await process_pdf(file_path))
+                elif file.endswith('.json'):
+                    await add_document_from_file(knowledge_base, await process_json(file_path))
         await message.reply("Zip archive uploaded and extracted successfully.")
+    elif file_name.endswith('.pdf'):
+        file_path = os.path.join(DOWNLOAD_DIR, file_name)
+        await add_document_from_file(knowledge_base, await process_pdf(file_path))
+        await message.reply("File uploaded successfully.")
+    elif file_name.endswith('.json'):
+        file_path = os.path.join(DOWNLOAD_DIR, file_name)
+        await add_document_from_file(knowledge_base, await process_json(file_path))
+        await message.reply("File uploaded successfully.")
     else:
-        if file_name.endswith('.pdf'):
-            await upload(await get_text(destination_file))
-            await message.reply("File uploaded successfully.")
-        else:
-            await message.reply("You can upload only zip archives or pdf files.")
+        await message.reply("You can upload only zip archives, pdf and json files.")
 
 
 @dp.message(Command('show'))
