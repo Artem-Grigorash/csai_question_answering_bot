@@ -98,30 +98,6 @@ async def send_response(message: types.Message):
 
     await message.reply(response)
 
-@dp.message()
-async def ask(message: types.Message):
-    global last_question, last_answer
-    user_question = message.text.strip()
-    if user_question == '':
-        await message.reply(messages.NO_QUESTION)
-    else:
-        last_question = user_question
-        answer = query_assistant(assistant, await translate_text_with_openai(user_question))
-        last_answer = answer
-        keyboard = InlineKeyboardMarkup(
-            inline_keyboard=[
-                [
-                    InlineKeyboardButton(text="😭", callback_data="1"),
-                    InlineKeyboardButton(text="😢", callback_data="2"),
-                    InlineKeyboardButton(text="😐", callback_data="3"),
-                    InlineKeyboardButton(text="🙂", callback_data="4"),
-                    InlineKeyboardButton(text="😃", callback_data="5")
-                ]
-            ]
-        )
-        await message.reply(answer, reply_markup=keyboard, parse_mode="Markdown")
-
-
 
 class FeedbackStates(StatesGroup):
     waiting_for_feedback = State()
@@ -166,6 +142,30 @@ async def handle_user_feedback(message: types.Message, state: FSMContext):
     save_feedback(last_question, last_answer, user_feedback, last_rate)
     await message.reply(messages.AFTER_FEEDBACK)
     await state.clear()
+
+
+@dp.message()
+async def ask(message: types.Message):
+    global last_question, last_answer
+    user_question = message.text.strip()
+    if user_question == '':
+        await message.reply(messages.NO_QUESTION)
+    else:
+        last_question = user_question
+        answer = query_assistant(assistant, await translate_text_with_openai(user_question))
+        last_answer = answer
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(text="😭", callback_data="1"),
+                    InlineKeyboardButton(text="😢", callback_data="2"),
+                    InlineKeyboardButton(text="😐", callback_data="3"),
+                    InlineKeyboardButton(text="🙂", callback_data="4"),
+                    InlineKeyboardButton(text="😃", callback_data="5")
+                ]
+            ]
+        )
+        await message.reply(answer, reply_markup=keyboard, parse_mode="Markdown")
 
 
 assistant = setup()
