@@ -49,6 +49,7 @@ def setup() -> Assistant:
             "First and foremost, interpret the question as being either related to the CSAI (Computer Science and Artificial Intelligence) program at Neapolis University or to the student life at this university in Paphos, Cyprus.",
             "Paphos Gardens is the place where students live.",
             "Provide the answer in telegram messenger format using emojis.",
+            "Add link to the most important source which you used to find the answer.",
             "Provide clear, concise and very detailed answers.",
         ],
         show_tool_calls=False,
