@@ -22,7 +22,7 @@ customEnv:
   - name: TG_API_TOKEN
     valueFrom:
       secretKeyRef:
-        name: bot-token-super-easy-test
+        name: assistant-bot
         key: token
   - name: OPENAI_API_KEY
     valueFrom:
@@ -54,6 +54,16 @@ customEnv:
       secretKeyRef:
           name: admin
           key: port
+  - name: LIFE_CS_CHAT_ID
+    valueFrom:
+      secretKeyRef:
+          name: life-chat-id
+          key: token
+  - name: ADMIN_CHAT_ID
+    valueFrom:
+      secretKeyRef:
+          name: admin-chat-id
+          key: token
 resources:
    requests:
      cpu: 200m

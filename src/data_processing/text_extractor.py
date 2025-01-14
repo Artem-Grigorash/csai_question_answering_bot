@@ -1,13 +1,14 @@
+import json
+import os
+
+import aiofiles
+import easyocr
 import fitz
 from PIL import Image
-import easyocr
-import os
-import aiofiles
 from phi.document import Document
-from googletrans import Translator
-from phi.document.reader.pdf import PDFReader
 
-translator = Translator()
+from src.utils.chunker import split_text
+from src.utils.translator import translate_text_with_openai
 
 reader = easyocr.Reader(['ru', 'en'])
 
@@ -16,7 +17,8 @@ async def process_pdf(pdf_path, chunk=True):
     print(pdf_path)
     doc = fitz.open(pdf_path)
     documents = []
-
+    all_text = ""
+    pages = []
     for page_number in range(len(doc)):
         page = doc[page_number]
         text = page.get_text()
@@ -39,20 +41,50 @@ async def process_pdf(pdf_path, chunk=True):
 
             os.remove(image_path)
 
-        translated_text = translator.translate(text, dest='en').text
+        translated_text = await translate_text_with_openai(text)
+        pages.append(translated_text)
+        all_text += translated_text
+
+    if chunk:
+        if len(all_text) <= 10000:
+            print(all_text)
+            chunks = await split_text(all_text)
+        else:
+            chunks = pages
+        doc_name = pdf_path.split("/")[-1].split(".")[0].replace(" ", "_")
+        for i, chunk in enumerate(chunks):
+            documents.append(Document(
+                name=doc_name,
+                id=f"{doc_name}_{i}",
+                meta_data={"chunk": i},
+                content=chunk))
+        print(documents)
+    else:
         doc_name = pdf_path.split("/")[-1].split(".")[0].replace(" ", "_")
         documents.append(Document(
             name=doc_name,
-            id=f"{doc_name}_{page_number}",
-            meta_data={"page": page_number},
+            id=f"doc_name_{1}",
+            content=all_text,
+            meta_data={"chunk": 1}
+        ))
+    return documents
+
+
+async def process_json(json_path):
+    with open(json_path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    documents = []
+    id = 0
+    json_name = json_path.split("/")[-1].split(".")[0].replace(" ", "_")
+    for message in data['messages']:
+        text = f'DATE: {message['date']}\n{message['text']}'
+        print(text)
+        translated_text = translate_text_with_openai(text)
+        documents.append(Document(
+            name=json_name,
+            id=f"{json_name}_{id}",
+            meta_data={"id": id},
             content=translated_text,
         ))
-
-    if chunk:
-        chunked_documents = []
-        pdf_reader = PDFReader()
-        for document in documents:
-            chunked_documents.extend(pdf_reader.chunk_document(document))
-        return chunked_documents
-
+        id += 1
     return documents

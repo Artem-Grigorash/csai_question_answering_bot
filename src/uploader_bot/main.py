@@ -1,20 +1,29 @@
 import asyncio
 import os
 import zipfile
+from pathlib import Path
+
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from dotenv import load_dotenv
-from src.data_processing.text_extractor import process_pdf
-from src.database.database import add_document_from_file
+from phi.document import Document
+
+from src.database.database import add_documents
 from phi.embedder.openai import OpenAIEmbedder
 from phi.knowledge import AssistantKnowledge
 from phi.vectordb.pgvector import PgVector2
 
+from src.utils.authenticator import check_user_in_chat
+from src.utils.translator import translate_text_with_openai
+from src.assistant_bot import messages
+from src.assistant_bot.feedback_db import get_all_ratings, get_all_feedbacks, clear_ratings, clear_feedbacks
+from src.data_processing.text_extractor import process_pdf, process_json
+from src.tests.test_answer import test
+
+
 load_dotenv()
 TG_API_TOKEN = os.getenv('TG_API_ADMIN_BOT_TOKEN')
 DOWNLOAD_DIR = os.getenv('DOWNLOAD_DIR')
-DB_URL = f"postgresql+psycopg2://{os.getenv('DB_NAME')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
-OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
@@ -22,6 +31,8 @@ bot = Bot(token=TG_API_TOKEN)
 dp = Dispatcher()
 ALLOWED_USERS = os.getenv('ALLOWED_USERS').split(',')
 ALLOWED_USERS = [int(user) for user in ALLOWED_USERS]
+DB_URL = f"postgresql+psycopg2://{os.getenv('DB_NAME')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 
 knowledge_base = AssistantKnowledge(
     vector_db=PgVector2(
@@ -51,9 +62,28 @@ async def send_welcome(message: types.Message):
     await message.reply("Welcome! Send file to upload it to database.")
 
 
+async def upload_pdf(file_path, link=""):
+    documents = await process_pdf(file_path)
+    for i in range(len(documents)):
+        documents[i].meta_data["link"] = link
+        documents[i].content += f"\n\nSource: {link}"
+    await add_documents(knowledge_base, documents)
+
+
+async def upload_json(file_path, link=""):
+    documents = await process_json(file_path)
+    for i in range(len(documents)):
+        documents[i].meta_data["link"] = link
+        documents[i].content += f"\n\nSource: {link}"
+    await add_documents(knowledge_base, documents)
+
+
 @dp.message(lambda message: message.document)
 async def handle_document(message: types.Message):
     document = message.document
+    link = ""
+    if message.caption:
+        link = message.caption.strip()
 
     file_id = document.file_id
     file_name = document.file_name
@@ -76,56 +106,126 @@ async def handle_document(message: types.Message):
             for file in files:
                 file_path = os.path.join(root, file)
                 if file.endswith('.pdf'):
-                    await add_document_from_file(knowledge_base, await process_pdf(file_path))
+                    await upload_pdf(file_path, link)
+                elif file.endswith('.json'):
+                    await upload_json(file_path, link)
         await message.reply("Zip archive uploaded and extracted successfully.")
+    elif file_name.endswith('.pdf'):
+        file_path = os.path.join(DOWNLOAD_DIR, file_name)
+        await upload_pdf(file_path, link)
+        await message.reply("File uploaded successfully.")
+    elif file_name.endswith('.json'):
+        file_path = os.path.join(DOWNLOAD_DIR, file_name)
+        await upload_json(file_path, link)
+        await message.reply("File uploaded successfully.")
     else:
-        if file_name.endswith('.pdf'):
-            file_path = os.path.join(DOWNLOAD_DIR, file_name)
-            await add_document_from_file(knowledge_base, await process_pdf(file_path))
-            await message.reply("File uploaded successfully.")
+        await message.reply("You can upload only zip archives, pdf and json files.")
+
+
+FEEDBACK_FILE = Path("feedback.txt")
+
+
+@dp.message(Command("send_feedback"))
+async def send_feedback_file(message: types.Message):
+    if FEEDBACK_FILE.exists():
+        await message.reply_document(
+            document=types.FSInputFile(FEEDBACK_FILE),
+            caption="Here is the feedback file you requested."
+        )
+    else:
+        await message.reply("The feedback file does not exist.")
+
+
+#  Feedback
+
+@dp.message(Command('show_ratings'))
+async def cmd_show_ratings(message: types.Message):
+    ratings = get_all_ratings()
+    if not ratings:
+        await message.reply(messages.NO_RATINGS)
+        return
+
+    response_text = messages.ALL_RATINGS + "\n\n"
+    for row in ratings:
+        feedback_id, rating, created_at = row
+        response_text += f"ID: {feedback_id} | Rating: {rating} | Date: {created_at}\n"
+    await message.reply(response_text)
+
+
+@dp.message(Command('show_feedbacks'))
+async def cmd_show_feedbacks(message: types.Message):
+    feedbacks = get_all_feedbacks()
+
+    if not feedbacks:
+        await message.reply(messages.NO_FEEDBACK)
+        return
+
+    response_text = messages.ALL_FEEDBACK + "\n\n"
+    for fb in feedbacks:
+        feedback_id = fb[0]
+        user_question = fb[1]
+        bot_answer = fb[2]
+        user_feedback = fb[3]
+        created_at = fb[4]
+
+        response_text += (
+            f"**Feedback ID:** {feedback_id}\n"
+            f"**Question:** {user_question}\n"
+            f"**Answer:** {bot_answer}\n"
+            f"**User Feedback:** {user_feedback}\n"
+            f"**Date:** {created_at}\n"
+            f"-----------------------------\n"
+        )
+
+    await message.reply(response_text, parse_mode="Markdown")
+
+
+@dp.message(Command('clear_ratings'))
+async def cmd_clear_ratings(message: types.Message):
+    clear_ratings()
+    await message.reply(messages.RATINGS_CLEANED)
+
+
+@dp.message(Command('clear_feedbacks'))
+async def cmd_clear_feedbacks(message: types.Message):
+    clear_feedbacks()
+    await message.reply(messages.FEEDBACK_CLEANED)
+
+
+# tests
+
+@dp.message(Command('launch_tests'))
+async def launch_tests(message: types.Message):
+    response = ""
+    passed = 0
+    errors = await test()
+    for error in errors:
+        if error[1] == "test failed":
+            response += "🟥 "
         else:
-            await message.reply("You can upload only zip archives or pdf files.")
+            response += "🟩 "
+            passed += 1
+        response += error[0] + "\n\n" + error[1] + "\n\n\n\n"
+    response += f"Tests passed: {passed} / {len(errors)}"
+    await message.reply(response)
 
 
-@dp.message(Command('show'))
-async def list_files(message: types.Message):
-    if not check_user(message.from_user.id):
+@dp.message()
+async def handle_message(message: types.Message):
+    user_id = message.from_user.id
+    check = await check_user_in_chat(bot, os.getenv('ADMIN_CHAT_ID'), user_id)
+    if not check:
         await message.reply("You are not allowed to use this bot.")
-        return
 
-    file_list = []
-    for root, dirs, files in os.walk(DOWNLOAD_DIR):
-        for name in dirs:
-            file_list.append(os.path.relpath(os.path.join(root, name), DOWNLOAD_DIR) + "\\")
-        for name in files:
-            file_list.append(os.path.relpath(os.path.join(root, name), DOWNLOAD_DIR))
-
-    if not file_list:
-        await message.reply("No files uploaded yet.")
-    else:
-        file_list_str = "\n".join(f"📁 {file}" if file.endswith('\\') else f"📄 {file}" for file in file_list)
-        await message.reply(f"Uploaded files:\n\n{file_list_str}")
-
-
-@dp.message(Command('delete_file'))
-async def delete_file(message: types.Message):
-    if not check_user(message.from_user.id):
-        await message.reply("You are not allowed to use this bot.")
-        return
-
-    command_args = message.text.split(maxsplit=1)
-    if len(command_args) > 1:
-        file_name = command_args[1]
-    else:
-        await message.reply("Please specify the file name to delete.")
-        return
-
-    file_path = os.path.join(DOWNLOAD_DIR, file_name)
-    if os.path.exists(file_path):
-        os.remove(file_path)
-        await message.reply(f"File '{file_name}' deleted successfully.")
-    else:
-        await message.reply(f"File '{file_name}' not found.")
+    text = await translate_text_with_openai(message.text.strip())
+    message_id = str(message.message_id)
+    await add_documents(knowledge_base, [Document(
+        name=message_id,
+        id=f"message_{message_id}",
+        content=text,
+        meta_data={"chunk": 1}
+    )])
+    await message.reply("Message uploaded successfully.")
 
 
 async def main():
