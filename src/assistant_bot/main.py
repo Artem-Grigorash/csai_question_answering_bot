@@ -1,10 +1,11 @@
 import asyncio
 import os
 import subprocess
-import src.assistant_bot.messages as messages
-import chromadb
-from aiogram.filters import Command
+
 from aiogram import Bot, Dispatcher, types
+from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from dotenv import load_dotenv
 from phi.assistant import Assistant
@@ -14,34 +15,18 @@ from phi.llm.openai import OpenAIChat
 from phi.storage.assistant.postgres import PgAssistantStorage
 from phi.vectordb.pgvector import PgVector2
 
+import src.assistant_bot.messages as messages
 from src.assistant_bot.feedback_db import init_db, save_rating, save_feedback, get_all_ratings, get_all_feedbacks, \
     clear_ratings, clear_feedbacks
-from src.database import database as db
-from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import StatesGroup, State
+from src.utils.translator import translate_text_with_openai
 
 load_dotenv()
 
-COLLECTION_NAME = os.getenv("COLLECTION_NAME")
-CHROMA_HOST = os.getenv("CHROMA_HOST")
-CHROMA_PORT = os.getenv("CHROMA_PORT")
-THRESHOLD = 0
 DB_URL = f"postgresql+psycopg2://{os.getenv('DB_NAME')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 
-storage_path = os.getenv('STORAGE_PATH')
-if storage_path is None:
-    raise ValueError('STORAGE_PATH environment variable is not set')
-
-client = chromadb.PersistentClient(path=storage_path)
-
-collection = client.get_or_create_collection(name="csai")
-
 TG_API_TOKEN = os.getenv('TG_API_TOKEN')
-ANSWERING_HOST = os.getenv('ANSWERING_HOST')
 DOWNLOAD_DIR = os.getenv('DOWNLOAD_DIR')
-RETRIEVER_URL = os.getenv("RETRIEVER_URL")
-HTTP_TIMEOUT = 1200
 
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
@@ -115,29 +100,19 @@ async def send_response(message: types.Message):
     await message.reply(response)
 
 
-@dp.message(Command('upload'))
-async def upload_text(message: types.Message):
-    text = message.text[len('/upload'):].strip()
-    if text == '':
-        await message.reply(messages.NO_TEXT)
-    else:
-        await db.upload(text)
-        await message.reply(messages.TEXT_UPLOADED)
-
-
 class FeedbackStates(StatesGroup):
     waiting_for_feedback = State()
 
 
-@dp.message(Command('ask'))
+@dp.message()
 async def ask(message: types.Message):
     global last_question, last_answer
-    user_question = message.text[len('/ask'):].strip()
+    user_question = message.text.strip()
     if user_question == '':
         await message.reply(messages.NO_QUESTION)
     else:
         last_question = user_question
-        answer = query_assistant(assistant, user_question)
+        answer = query_assistant(assistant, await translate_text_with_openai(user_question))
         last_answer = answer
         keyboard = InlineKeyboardMarkup(
             inline_keyboard=[
@@ -150,7 +125,7 @@ async def ask(message: types.Message):
                 ]
             ]
         )
-        await message.reply(answer, reply_markup=keyboard)
+        await message.reply(answer, reply_markup=keyboard, parse_mode="Markdown")
 
 
 #  Feedback processing
@@ -176,7 +151,7 @@ async def callback_rating(query: types.CallbackQuery):
 
     await query.message.edit_text(
         f"{query.message.text}\n\nYou rated this response as: {emoji_map[rating]}",
-        reply_markup=new_keyboard
+        reply_markup=new_keyboard, parse_mode="Markdown"
     )
 
 

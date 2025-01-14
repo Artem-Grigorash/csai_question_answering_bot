@@ -7,20 +7,16 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from dotenv import load_dotenv
 from phi.document import Document
-
-from src.data_processing.text_extractor import process_pdf, process_json
-from src.database.database import add_documents
 from phi.embedder.openai import OpenAIEmbedder
 from phi.knowledge import AssistantKnowledge
 from phi.vectordb.pgvector import PgVector2
 
-from src.utils.translator import translate_text_with_openai
 from src.assistant_bot import messages
 from src.assistant_bot.feedback_db import get_all_ratings, get_all_feedbacks, clear_ratings, clear_feedbacks
 from src.data_processing.text_extractor import process_pdf, process_json
-from src.database.database import add_document_from_file
+from src.database.database import add_documents
 from src.tests.test_answer import test
-
+from src.utils.translator import translate_text_with_openai
 
 load_dotenv()
 TG_API_TOKEN = os.getenv('TG_API_ADMIN_BOT_TOKEN')
@@ -123,18 +119,6 @@ async def handle_document(message: types.Message):
         await message.reply("You can upload only zip archives, pdf and json files.")
 
 
-@dp.message()
-async def handle_message(message: types.Message):
-    text = await translate_text_with_openai(message.text.strip())
-    message_id = str(message.message_id)
-    await add_documents(knowledge_base, [Document(
-        name=message_id,
-        id=f"message_{message_id}",
-        content=text,
-        meta_data={"chunk": 1}
-    )])
-    await message.reply("Message uploaded successfully.")
-
 FEEDBACK_FILE = Path("feedback.txt")
 
 
@@ -223,10 +207,24 @@ async def launch_tests(message: types.Message):
     await message.reply(response)
 
 
+@dp.message()
+async def handle_message(message: types.Message):
+    text = await translate_text_with_openai(message.text.strip())
+    message_id = str(message.message_id)
+    await add_documents(knowledge_base, [Document(
+        name=message_id,
+        id=f"message_{message_id}",
+        content=text,
+        meta_data={"chunk": 1}
+    )])
+    await message.reply("Message uploaded successfully.")
+
+
 async def main():
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
 
 if __name__ == '__main__':
+    print('Bot is running!')
     asyncio.run(main())
