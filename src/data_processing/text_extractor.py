@@ -77,7 +77,7 @@ async def process_json(json_path):
     id = 0
     json_name = json_path.split("/")[-1].split(".")[0].replace(" ", "_")
     for message in data['messages']:
-        text = f'DATE: {message['date']}\n{message['text']}'
+        text = f'DATE: {message["date"]}\n{message["text"]}'
         print(text)
         translated_text = translate_text_with_openai(text)
         documents.append(Document(
