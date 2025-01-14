@@ -54,6 +54,16 @@ customEnv:
       secretKeyRef:
           name: admin
           key: port
+  - name: LIFE_CS_CHAT_ID
+    valueFrom:
+      secretKeyRef:
+        name: life-chat-id
+        key: token
+  - name: ADMIN_CHAT_ID
+    valueFrom:
+      secretKeyRef:
+        name: admin-chat-id
+        key: token
 resources:
    requests:
      cpu: 200m

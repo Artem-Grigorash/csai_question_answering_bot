@@ -1,7 +1,5 @@
 import asyncio
 import os
-import subprocess
-
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -14,7 +12,7 @@ from phi.knowledge import AssistantKnowledge
 from phi.llm.openai import OpenAIChat
 from phi.storage.assistant.postgres import PgAssistantStorage
 from phi.vectordb.pgvector import PgVector2
-
+from src.utils.authenticator import check_user
 import src.assistant_bot.messages as messages
 from src.assistant_bot.feedback_db import init_db, save_rating, save_feedback
 from src.utils.translator import translate_text_with_openai
@@ -25,9 +23,6 @@ DB_URL = f"postgresql+psycopg2://{os.getenv('DB_NAME')}:{os.getenv('DB_PASSWORD'
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 
 TG_API_TOKEN = os.getenv('TG_API_TOKEN')
-DOWNLOAD_DIR = os.getenv('DOWNLOAD_DIR')
-
-os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
 bot = Bot(token=TG_API_TOKEN)
 dp = Dispatcher()
@@ -89,16 +84,6 @@ async def send_welcome(message: types.Message):
     await message.reply(messages.HELP_MESSAGE)
 
 
-@dp.message(Command('ping'))
-async def send_response(message: types.Message):
-    try:
-        response = messages.CONNECTION_SUCCESSFUL
-    except subprocess.CalledProcessError:
-        response = messages.CONNECTION_FAILED
-
-    await message.reply(response)
-
-
 class FeedbackStates(StatesGroup):
     waiting_for_feedback = State()
 
@@ -147,6 +132,13 @@ async def handle_user_feedback(message: types.Message, state: FSMContext):
 @dp.message()
 async def ask(message: types.Message):
     global last_question, last_answer
+
+    user_id = message.from_user.id
+    check = await check_user(bot, user_id)
+    if not check["status"]:
+        await message.reply(check["message"])
+        return
+
     user_question = message.text.strip()
     if user_question == '':
         await message.reply(messages.NO_QUESTION)

@@ -13,6 +13,7 @@ from phi.embedder.openai import OpenAIEmbedder
 from phi.knowledge import AssistantKnowledge
 from phi.vectordb.pgvector import PgVector2
 
+from src.utils.authenticator import check_user_in_chat
 from src.utils.translator import translate_text_with_openai
 from src.assistant_bot import messages
 from src.assistant_bot.feedback_db import get_all_ratings, get_all_feedbacks, clear_ratings, clear_feedbacks
@@ -211,6 +212,11 @@ async def launch_tests(message: types.Message):
 
 @dp.message()
 async def handle_message(message: types.Message):
+    user_id = message.from_user.id
+    check = await check_user_in_chat(bot, os.getenv('ADMIN_CHAT_ID'), user_id)
+    if not check:
+        await message.reply("You are not allowed to use this bot.")
+
     text = await translate_text_with_openai(message.text.strip())
     message_id = str(message.message_id)
     await add_documents(knowledge_base, [Document(
