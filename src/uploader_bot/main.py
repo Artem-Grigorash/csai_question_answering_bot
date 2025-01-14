@@ -7,16 +7,18 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from dotenv import load_dotenv
 from phi.document import Document
+
+from src.database.database import add_documents
 from phi.embedder.openai import OpenAIEmbedder
 from phi.knowledge import AssistantKnowledge
 from phi.vectordb.pgvector import PgVector2
 
+from src.utils.translator import translate_text_with_openai
 from src.assistant_bot import messages
 from src.assistant_bot.feedback_db import get_all_ratings, get_all_feedbacks, clear_ratings, clear_feedbacks
 from src.data_processing.text_extractor import process_pdf, process_json
-from src.database.database import add_documents
 from src.tests.test_answer import test
-from src.utils.translator import translate_text_with_openai
+
 
 load_dotenv()
 TG_API_TOKEN = os.getenv('TG_API_ADMIN_BOT_TOKEN')

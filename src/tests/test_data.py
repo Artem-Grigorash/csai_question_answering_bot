@@ -17,6 +17,6 @@ test_data = [
     },
     {
         "question": "What documents are needed to extend a visa?",
-        "keywords": ["Passport", "Medical Insurance", "Medical Certificate", "Bank Letter", "Bank Guarantee", "House Contract", "Acceptance Letter", "Declaration for Asylum", "Sponsorship Letter", "Payment Receipt"]
+        "keywords": ["Passport", "Medical Insurance", "Bank Letter", "Bank Guarantee", "MEDU", "Criminal", "fee"]
     }
 ]

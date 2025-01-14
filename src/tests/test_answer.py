@@ -1,14 +1,15 @@
 import pytest
 import asyncio
 
-from src.database import database
+from src.assistant_bot.main import query_assistant, assistant
 from src.tests.test_data import test_data
+from src.utils.translator import translate_text_with_openai
 
 
 async def test_response(question, key_words, retries=3):
     for attempt in range(1, retries + 1):
         try:
-            answer = await database.answer(question)
+            answer = query_assistant(assistant, await translate_text_with_openai(question))
             print(f"Attempt {attempt}: Answer: {answer}\n")
             for word in key_words:
                 assert word.lower() in answer.lower()
