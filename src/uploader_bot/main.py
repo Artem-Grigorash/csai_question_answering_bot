@@ -20,17 +20,15 @@ from src.assistant_bot.feedback_db import get_all_ratings, get_all_feedbacks, cl
 from src.data_processing.text_extractor import process_pdf, process_json
 from src.tests.test_answer import test
 
-
 load_dotenv()
 TG_API_TOKEN = os.getenv('TG_API_ADMIN_BOT_TOKEN')
 DOWNLOAD_DIR = os.getenv('DOWNLOAD_DIR')
+ADMIN_CHAT_ID = os.getenv('ADMIN_CHAT_ID')
 
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
 bot = Bot(token=TG_API_TOKEN)
 dp = Dispatcher()
-ALLOWED_USERS = os.getenv('ALLOWED_USERS').split(',')
-ALLOWED_USERS = [int(user) for user in ALLOWED_USERS]
 DB_URL = f"postgresql+psycopg2://{os.getenv('DB_NAME')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 
@@ -44,19 +42,11 @@ knowledge_base = AssistantKnowledge(
 )
 
 
-def check_user(user_id):
-    return True
-    # return user_id in ALLOWED_USERS
-
-
-def add_user(user_id):
-    if user_id not in ALLOWED_USERS:
-        ALLOWED_USERS.append(user_id)
-
-
 @dp.message(Command('start'))
 async def send_welcome(message: types.Message):
-    if not check_user(message.from_user.id):
+    user_id = message.from_user.id
+    check = await check_user_in_chat(bot, ADMIN_CHAT_ID, user_id)
+    if not check:
         await message.reply("You are not allowed to use this bot.")
         return
     await message.reply("Welcome! Send file to upload it to database.")
@@ -80,6 +70,11 @@ async def upload_json(file_path, link=""):
 
 @dp.message(lambda message: message.document)
 async def handle_document(message: types.Message):
+    user_id = message.from_user.id
+    check = await check_user_in_chat(bot, ADMIN_CHAT_ID, user_id)
+    if not check:
+        await message.reply("You are not allowed to use this bot.")
+        return
     document = message.document
     link = ""
     if message.caption:
@@ -127,6 +122,11 @@ FEEDBACK_FILE = Path("feedback.txt")
 
 @dp.message(Command("send_feedback"))
 async def send_feedback_file(message: types.Message):
+    user_id = message.from_user.id
+    check = await check_user_in_chat(bot, ADMIN_CHAT_ID, user_id)
+    if not check:
+        await message.reply("You are not allowed to use this bot.")
+        return
     if FEEDBACK_FILE.exists():
         await message.reply_document(
             document=types.FSInputFile(FEEDBACK_FILE),
@@ -140,6 +140,11 @@ async def send_feedback_file(message: types.Message):
 
 @dp.message(Command('show_ratings'))
 async def cmd_show_ratings(message: types.Message):
+    user_id = message.from_user.id
+    check = await check_user_in_chat(bot, ADMIN_CHAT_ID, user_id)
+    if not check:
+        await message.reply("You are not allowed to use this bot.")
+        return
     ratings = get_all_ratings()
     if not ratings:
         await message.reply(messages.NO_RATINGS)
@@ -154,6 +159,11 @@ async def cmd_show_ratings(message: types.Message):
 
 @dp.message(Command('show_feedbacks'))
 async def cmd_show_feedbacks(message: types.Message):
+    user_id = message.from_user.id
+    check = await check_user_in_chat(bot, ADMIN_CHAT_ID, user_id)
+    if not check:
+        await message.reply("You are not allowed to use this bot.")
+        return
     feedbacks = get_all_feedbacks()
 
     if not feedbacks:
@@ -182,12 +192,22 @@ async def cmd_show_feedbacks(message: types.Message):
 
 @dp.message(Command('clear_ratings'))
 async def cmd_clear_ratings(message: types.Message):
+    user_id = message.from_user.id
+    check = await check_user_in_chat(bot, ADMIN_CHAT_ID, user_id)
+    if not check:
+        await message.reply("You are not allowed to use this bot.")
+        return
     clear_ratings()
     await message.reply(messages.RATINGS_CLEANED)
 
 
 @dp.message(Command('clear_feedbacks'))
 async def cmd_clear_feedbacks(message: types.Message):
+    user_id = message.from_user.id
+    check = await check_user_in_chat(bot, ADMIN_CHAT_ID, user_id)
+    if not check:
+        await message.reply("You are not allowed to use this bot.")
+        return
     clear_feedbacks()
     await message.reply(messages.FEEDBACK_CLEANED)
 
@@ -196,6 +216,11 @@ async def cmd_clear_feedbacks(message: types.Message):
 
 @dp.message(Command('launch_tests'))
 async def launch_tests(message: types.Message):
+    user_id = message.from_user.id
+    check = await check_user_in_chat(bot, ADMIN_CHAT_ID, user_id)
+    if not check:
+        await message.reply("You are not allowed to use this bot.")
+        return
     response = ""
     passed = 0
     errors = await test()
@@ -213,7 +238,7 @@ async def launch_tests(message: types.Message):
 @dp.message()
 async def handle_message(message: types.Message):
     user_id = message.from_user.id
-    check = await check_user_in_chat(bot, os.getenv('ADMIN_CHAT_ID'), user_id)
+    check = await check_user_in_chat(bot, ADMIN_CHAT_ID, user_id)
     if not check:
         await message.reply("You are not allowed to use this bot.")
         return
