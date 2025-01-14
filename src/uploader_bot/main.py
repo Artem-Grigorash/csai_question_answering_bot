@@ -216,6 +216,7 @@ async def handle_message(message: types.Message):
     check = await check_user_in_chat(bot, os.getenv('ADMIN_CHAT_ID'), user_id)
     if not check:
         await message.reply("You are not allowed to use this bot.")
+        return
 
     text = await translate_text_with_openai(message.text.strip())
     message_id = str(message.message_id)
