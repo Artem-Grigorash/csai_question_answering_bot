@@ -4,6 +4,7 @@ import zipfile
 from pathlib import Path
 
 from aiogram import Bot, Dispatcher, types
+from aiogram.enums import ChatType
 from aiogram.filters import Command
 from dotenv import load_dotenv
 from phi.document import Document
@@ -41,9 +42,10 @@ knowledge_base = AssistantKnowledge(
     num_documents=3,
 )
 
-
 @dp.message(Command('start'))
 async def send_welcome(message: types.Message):
+    if message.chat.type != ChatType.PRIVATE:
+        return
     user_id = message.from_user.id
     check = await check_user_in_chat(bot, ADMIN_CHAT_ID, user_id)
     if not check:
@@ -70,6 +72,8 @@ async def upload_json(file_path, link=""):
 
 @dp.message(lambda message: message.document)
 async def handle_document(message: types.Message):
+    if message.chat.type != ChatType.PRIVATE:
+        return
     user_id = message.from_user.id
     check = await check_user_in_chat(bot, ADMIN_CHAT_ID, user_id)
     if not check:
@@ -122,6 +126,8 @@ FEEDBACK_FILE = Path("feedback.txt")
 
 @dp.message(Command("send_feedback"))
 async def send_feedback_file(message: types.Message):
+    if message.chat.type != ChatType.PRIVATE:
+        return
     user_id = message.from_user.id
     check = await check_user_in_chat(bot, ADMIN_CHAT_ID, user_id)
     if not check:
@@ -140,6 +146,8 @@ async def send_feedback_file(message: types.Message):
 
 @dp.message(Command('show_ratings'))
 async def cmd_show_ratings(message: types.Message):
+    if message.chat.type != ChatType.PRIVATE:
+        return
     user_id = message.from_user.id
     check = await check_user_in_chat(bot, ADMIN_CHAT_ID, user_id)
     if not check:
@@ -159,6 +167,8 @@ async def cmd_show_ratings(message: types.Message):
 
 @dp.message(Command('show_feedbacks'))
 async def cmd_show_feedbacks(message: types.Message):
+    if message.chat.type != ChatType.PRIVATE:
+        return
     user_id = message.from_user.id
     check = await check_user_in_chat(bot, ADMIN_CHAT_ID, user_id)
     if not check:
@@ -192,6 +202,8 @@ async def cmd_show_feedbacks(message: types.Message):
 
 @dp.message(Command('clear_ratings'))
 async def cmd_clear_ratings(message: types.Message):
+    if message.chat.type != ChatType.PRIVATE:
+        return
     user_id = message.from_user.id
     check = await check_user_in_chat(bot, ADMIN_CHAT_ID, user_id)
     if not check:
@@ -203,6 +215,8 @@ async def cmd_clear_ratings(message: types.Message):
 
 @dp.message(Command('clear_feedbacks'))
 async def cmd_clear_feedbacks(message: types.Message):
+    if message.chat.type != ChatType.PRIVATE:
+        return
     user_id = message.from_user.id
     check = await check_user_in_chat(bot, ADMIN_CHAT_ID, user_id)
     if not check:
@@ -216,6 +230,8 @@ async def cmd_clear_feedbacks(message: types.Message):
 
 @dp.message(Command('launch_tests'))
 async def launch_tests(message: types.Message):
+    if message.chat.type != ChatType.PRIVATE:
+        return
     user_id = message.from_user.id
     check = await check_user_in_chat(bot, ADMIN_CHAT_ID, user_id)
     if not check:
@@ -237,6 +253,8 @@ async def launch_tests(message: types.Message):
 
 @dp.message()
 async def handle_message(message: types.Message):
+    if message.chat.type != ChatType.PRIVATE:
+        return
     user_id = message.from_user.id
     check = await check_user_in_chat(bot, ADMIN_CHAT_ID, user_id)
     if not check:

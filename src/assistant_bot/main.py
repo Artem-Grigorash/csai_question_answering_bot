@@ -1,6 +1,7 @@
 import asyncio
 import os
 from aiogram import Bot, Dispatcher, types
+from aiogram.enums import ChatType
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
@@ -76,11 +77,15 @@ def query_assistant(assistant, question: str) -> str:
 
 @dp.message(Command('start'))
 async def send_welcome(message: types.Message):
+    if message.chat.type != ChatType.PRIVATE:
+        return
     await message.reply(messages.START_MESSAGE)
 
 
 @dp.message(Command('help'))
 async def send_welcome(message: types.Message):
+    if message.chat.type != ChatType.PRIVATE:
+        return
     await message.reply(messages.HELP_MESSAGE)
 
 
@@ -123,6 +128,8 @@ async def callback_feedback(query: types.CallbackQuery, state: FSMContext):
 
 @dp.message(FeedbackStates.waiting_for_feedback)
 async def handle_user_feedback(message: types.Message, state: FSMContext):
+    if message.chat.type != ChatType.PRIVATE:
+        return
     user_feedback = message.text.strip()
     save_feedback(last_question, last_answer, user_feedback, last_rate)
     await message.reply(messages.AFTER_FEEDBACK)
@@ -131,6 +138,8 @@ async def handle_user_feedback(message: types.Message, state: FSMContext):
 
 @dp.message()
 async def ask(message: types.Message):
+    if message.chat.type != ChatType.PRIVATE:
+        return
     global last_question, last_answer
 
     user_id = message.from_user.id
