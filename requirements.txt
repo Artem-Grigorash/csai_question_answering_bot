@@ -5,8 +5,8 @@ aiofiles~=24.1.0
 pillow~=10.4.0
 openai~=1.57.4
 phidata
-googletrans-py
-sqlalchemy
+sqlalchemy~=2.0.37
 pgvector
 psycopg2
 pymupdf
+pytest~=8.3.4
