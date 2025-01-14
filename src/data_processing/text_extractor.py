@@ -6,8 +6,8 @@ import easyocr
 import fitz
 from PIL import Image
 from phi.document import Document
-from phi.document.reader.pdf import PDFReader
 
+from src.utils.chunker import split_text
 from src.utils.translator import translate_text_with_openai
 
 reader = easyocr.Reader(['ru', 'en'])
@@ -17,7 +17,8 @@ async def process_pdf(pdf_path, chunk=True):
     print(pdf_path)
     doc = fitz.open(pdf_path)
     documents = []
-
+    all_text = ""
+    pages = []
     for page_number in range(len(doc)):
         page = doc[page_number]
         text = page.get_text()
@@ -40,23 +41,34 @@ async def process_pdf(pdf_path, chunk=True):
 
             os.remove(image_path)
 
-        translated_text = translate_text_with_openai(text)
+        translated_text = await translate_text_with_openai(text)
+        pages.append(translated_text)
+        all_text += translated_text
+
+    if chunk:
+        if len(all_text) <= 10000:
+            print(all_text)
+            chunks = await split_text(all_text)
+        else:
+            chunks = pages
+        doc_name = pdf_path.split("/")[-1].split(".")[0].replace(" ", "_")
+        for i, chunk in enumerate(chunks):
+            documents.append(Document(
+                name=doc_name,
+                id=f"{doc_name}_{i}",
+                meta_data={"chunk": i},
+                content=chunk))
+        print(documents)
+    else:
         doc_name = pdf_path.split("/")[-1].split(".")[0].replace(" ", "_")
         documents.append(Document(
             name=doc_name,
-            id=f"{doc_name}_{page_number}",
-            meta_data={"page": page_number},
-            content=translated_text,
+            id=f"doc_name_{1}",
+            content=all_text,
+            meta_data={"chunk": 1}
         ))
-
-    if chunk:
-        chunked_documents = []
-        pdf_reader = PDFReader()
-        for document in documents:
-            chunked_documents.extend(pdf_reader.chunk_document(document))
-        return chunked_documents
-
     return documents
+
 
 async def process_json(json_path):
     with open(json_path, 'r', encoding='utf-8') as f:

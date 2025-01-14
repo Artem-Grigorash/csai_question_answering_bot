@@ -6,15 +6,21 @@ from pathlib import Path
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from dotenv import load_dotenv
+from phi.document import Document
+
+from src.data_processing.text_extractor import process_pdf, process_json
+from src.database.database import add_documents
 from phi.embedder.openai import OpenAIEmbedder
 from phi.knowledge import AssistantKnowledge
 from phi.vectordb.pgvector import PgVector2
 
+from src.utils.translator import translate_text_with_openai
 from src.assistant_bot import messages
 from src.assistant_bot.feedback_db import get_all_ratings, get_all_feedbacks, clear_ratings, clear_feedbacks
 from src.data_processing.text_extractor import process_pdf, process_json
 from src.database.database import add_document_from_file
 from src.tests.test_answer import test
+
 
 load_dotenv()
 TG_API_TOKEN = os.getenv('TG_API_ADMIN_BOT_TOKEN')
@@ -57,9 +63,28 @@ async def send_welcome(message: types.Message):
     await message.reply("Welcome! Send file to upload it to database.")
 
 
+async def upload_pdf(file_path, link=""):
+    documents = await process_pdf(file_path)
+    for i in range(len(documents)):
+        documents[i].meta_data["link"] = link
+        documents[i].content += f"\n\nSource: {link}"
+    await add_documents(knowledge_base, documents)
+
+
+async def upload_json(file_path, link=""):
+    documents = await process_json(file_path)
+    for i in range(len(documents)):
+        documents[i].meta_data["link"] = link
+        documents[i].content += f"\n\nSource: {link}"
+    await add_documents(knowledge_base, documents)
+
+
 @dp.message(lambda message: message.document)
 async def handle_document(message: types.Message):
     document = message.document
+    link = ""
+    if message.caption:
+        link = message.caption.strip()
 
     file_id = document.file_id
     file_name = document.file_name
@@ -82,22 +107,33 @@ async def handle_document(message: types.Message):
             for file in files:
                 file_path = os.path.join(root, file)
                 if file.endswith('.pdf'):
-                    await add_document_from_file(knowledge_base, await process_pdf(file_path))
+                    await upload_pdf(file_path, link)
                 elif file.endswith('.json'):
-                    await add_document_from_file(knowledge_base, await process_json(file_path))
+                    await upload_json(file_path, link)
         await message.reply("Zip archive uploaded and extracted successfully.")
     elif file_name.endswith('.pdf'):
         file_path = os.path.join(DOWNLOAD_DIR, file_name)
-        await add_document_from_file(knowledge_base, await process_pdf(file_path))
+        await upload_pdf(file_path, link)
         await message.reply("File uploaded successfully.")
     elif file_name.endswith('.json'):
         file_path = os.path.join(DOWNLOAD_DIR, file_name)
-        await add_document_from_file(knowledge_base, await process_json(file_path))
+        await upload_json(file_path, link)
         await message.reply("File uploaded successfully.")
     else:
         await message.reply("You can upload only zip archives, pdf and json files.")
 
 
+@dp.message()
+async def handle_message(message: types.Message):
+    text = await translate_text_with_openai(message.text.strip())
+    message_id = str(message.message_id)
+    await add_documents(knowledge_base, [Document(
+        name=message_id,
+        id=f"message_{message_id}",
+        content=text,
+        meta_data={"chunk": 1}
+    )])
+    await message.reply("Message uploaded successfully.")
 
 FEEDBACK_FILE = Path("feedback.txt")
 
