@@ -40,22 +40,23 @@ def setup() -> Assistant:
                 collection="auto_rag_docs",
                 embedder=OpenAIEmbedder(model="text-embedding-ada-002", dimensions=1536, api_key=OPENAI_API_KEY),
             ),
-            num_documents=5,
+            num_documents=4,
         ),
-        description='You are assistant for the CSAI program at Neapolis University in Cyprus',
+        description='An assistant for the CSAI (Computer Science and Artificial Intelligence) program at Neapolis University in Paphos, Cyprus',
+        task='Answer questions related to the CSAI program at Neapolis University in Paphos, Cyprus',
         instructions=[
-            "Search your knowledge base first.",
-            "First and foremost, interpret the question as being either related to the CSAI (Computer Science and Artificial Intelligence) program at Neapolis University or to the student life at this university in Cyprus.",
-            "If you know the answer, provide it.",
-            "If you don't know the answer, print 'The answer was not found'.",
-            "Provide the answer in telegram format.",
+            "Always search the knowledge base first.",
+            "First and foremost, interpret the question as being either related to the CSAI (Computer Science and Artificial Intelligence) program at Neapolis University or to the student life at this university in Paphos, Cyprus.",
+            "Paphos Gardens is the place where students live.",
+            "Provide the answer in telegram messenger format using emojis.",
             "Provide clear, concise and very detailed answers.",
         ],
-        show_tool_calls=True,
+        show_tool_calls=False,
         search_knowledge=True,
+        add_datetime_to_instructions=True,
         read_chat_history=True,
         debug_mode=True,
-
+        prevent_hallucinations=True
     )
 
 
