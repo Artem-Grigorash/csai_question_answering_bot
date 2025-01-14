@@ -16,8 +16,7 @@ from phi.storage.assistant.postgres import PgAssistantStorage
 from phi.vectordb.pgvector import PgVector2
 
 import src.assistant_bot.messages as messages
-from src.assistant_bot.feedback_db import init_db, save_rating, save_feedback, get_all_ratings, get_all_feedbacks, \
-    clear_ratings, clear_feedbacks
+from src.assistant_bot.feedback_db import init_db, save_rating, save_feedback
 from src.utils.translator import translate_text_with_openai
 
 load_dotenv()
@@ -143,88 +142,6 @@ async def handle_user_feedback(message: types.Message, state: FSMContext):
     save_feedback(last_question, last_answer, user_feedback, last_rate)
     await message.reply(messages.AFTER_FEEDBACK)
     await state.clear()
-
-
-#  Admin commands
-
-@dp.message(Command('show_ratings'))
-async def cmd_show_ratings(message: types.Message):
-    ratings = get_all_ratings()
-    if not ratings:
-        await message.reply(messages.NO_RATINGS)
-        return
-
-    response_text = messages.ALL_RATINGS + "\n\n"
-    for row in ratings:
-        feedback_id, rating, created_at = row
-        response_text += f"ID: {feedback_id} | Rating: {rating} | Date: {created_at}\n"
-    await message.reply(response_text)
-
-
-@dp.message(Command('show_feedbacks'))
-async def cmd_show_feedbacks(message: types.Message):
-    feedbacks = get_all_feedbacks()
-
-    if not feedbacks:
-        await message.reply(messages.NO_FEEDBACK)
-        return
-
-    response_text = messages.ALL_FEEDBACK + "\n\n"
-    for fb in feedbacks:
-        feedback_id = fb[0]
-        user_question = fb[1]
-        bot_answer = fb[2]
-        user_feedback = fb[3]
-        rating = fb[4]
-        created_at = fb[5]
-
-        response_text += (
-            f"\n**Feedback ID:** {feedback_id}\n"
-            f"\n**Question:** {user_question}\n"
-            f"\n**Answer:** {bot_answer}\n"
-            f"\n**User Feedback:** {user_feedback}\n"
-            f"\n**Rating:** {rating}\n"
-            f"\n**Date:** {created_at}\n"
-            f"-----------------------------\n\n"
-        )
-
-    await message.reply(response_text, parse_mode="Markdown")
-
-
-@dp.message(Command('clear_ratings'))
-async def cmd_clear_ratings(message: types.Message):
-    clear_ratings()
-    await message.reply(messages.RATINGS_CLEANED)
-
-
-@dp.message(Command('clear_feedbacks'))
-async def cmd_clear_feedbacks(message: types.Message):
-    clear_feedbacks()
-    await message.reply(messages.FEEDBACK_CLEANED)
-
-
-@dp.message()
-async def ask(message: types.Message):
-    global last_question, last_answer
-    user_question = message.text.strip()
-    if user_question == '':
-        await message.reply(messages.NO_QUESTION)
-    else:
-        last_question = user_question
-        answer = query_assistant(assistant, await translate_text_with_openai(user_question))
-        last_answer = answer
-        keyboard = InlineKeyboardMarkup(
-            inline_keyboard=[
-                [
-                    InlineKeyboardButton(text="😭", callback_data="1"),
-                    InlineKeyboardButton(text="😢", callback_data="2"),
-                    InlineKeyboardButton(text="😐", callback_data="3"),
-                    InlineKeyboardButton(text="🙂", callback_data="4"),
-                    InlineKeyboardButton(text="😃", callback_data="5")
-                ]
-            ]
-        )
-        await message.reply(answer, reply_markup=keyboard, parse_mode="Markdown")
 
 
 assistant = setup()
