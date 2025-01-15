@@ -1,12 +1,12 @@
 START_MESSAGE = "Hello!\nTo ask a question to the bot, just send it to this chat\nTo see more information use /help"
 HELP_MESSAGE = (
-    "Welcome to the CSAI Q&A Bot! Here's how I can assist you:\n\n"
+    "Welcome to the CSAI Assistant!\n\n"
     "Submit a question, and I will provide you with a detailed response.\n"
     "This bot is brought to you by:\n"
     "- Artem Abaturov\n"
     "- Artem Grigorash\n"
     "- Sofya Petrenko\n\n"
-    "Feel free to explore the commands and make the most of this bot! 🚀"
+    "Feel free to share your feedback with us! 🚀"
 )
 
 CONNECTION_SUCCESSFUL = "Server is connected"
