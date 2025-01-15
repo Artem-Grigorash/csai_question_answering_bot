@@ -5,7 +5,7 @@ The **CSAI Question & Answering Bot** is tailored specifically for students in t
 ## Features
 
 - **Program-Specific Knowledge Base:**
-  The bot is trained and configured to use official documents, guides, and resources from the CSAI program at JetBrains.
+  The bot is trained and configured to use official documents, guides, and resources from the CSAI program.
 
 - **Natural Language Understanding:**
   Utilizes phidata framework for building multi-modal agents to understand and process student queries effectively.
@@ -22,7 +22,7 @@ The **CSAI Question & Answering Bot** is tailored specifically for students in t
 ## Usage
 
 1. **Telegram Bot**
-   For now we have only Telegram bot. You can use by https://t.me/csai_assistant_bot/
+   For now we have only Telegram bot. You can use it by https://t.me/csai_assistant_bot/
    
 ## Contributing
 
