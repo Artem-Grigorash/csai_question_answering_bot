@@ -17,7 +17,7 @@ The **CSAI Question & Answering Bot** is tailored specifically for students in t
   Handles multiple queries simultaneously with an interactive interface.
 
 ## System Disign & Possible Scenarios
-![sсheme.png](src/data/scheme.png)
+![sсheme](src/data/theme-sensitive.svg)
   
 ## Usage
 
