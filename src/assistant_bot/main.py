@@ -48,7 +48,7 @@ def setup() -> Assistant:
                 collection="auto_rag_docs",
                 embedder=OpenAIEmbedder(model="text-embedding-ada-002", dimensions=1536, api_key=OPENAI_API_KEY),
             ),
-            num_documents=4,
+            num_documents=5,
         ),
         description='An assistant for the CSAI (Computer Science and Artificial Intelligence) program at Neapolis University in Paphos, Cyprus',
         task='Answer questions related to the CSAI program at Neapolis University in Paphos, Cyprus',
@@ -116,14 +116,14 @@ async def callback_rating(query: types.CallbackQuery):
         inline_keyboard=[[InlineKeyboardButton(text=messages.OPTION_FEEDBACK, callback_data="feedback"), ]])
 
     await query.message.edit_text(
-        f"{query.message.text}\n\nYou rated this response as: {emoji_map[rating]}",
-        reply_markup=new_keyboard, parse_mode="Markdown"
+        f"{query.message.html_text}\n\nYou rated this response as: {emoji_map[rating]}",
+        reply_markup=new_keyboard, parse_mode="HTML"
     )
 
 
 @dp.callback_query(lambda c: c.data == 'feedback')
 async def callback_feedback(query: types.CallbackQuery, state: FSMContext):
-    await query.message.edit_text(query.message.text, reply_markup=None, parse_mode="Markdown")
+    await query.message.edit_text(query.message.html_text, reply_markup=None, parse_mode="HTML")
     await query.answer()
     await query.message.reply(messages.FEEDBACK_REQUEST)
     await state.set_state(FeedbackStates.waiting_for_feedback)

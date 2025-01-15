@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">
+  <style>
+    .light-theme { display: none; }
+    .dark-theme { display: block; }
+    @media (prefers-color-scheme: light) {
+      .light-theme { display: block; }
+      .dark-theme { display: none; }
+    }
+  </style>
+  <image class="light-theme" href="light-scheme.png" x="0" y="0" width="200" height="200"/>
+  <image class="dark-theme" href="dark-scheme.png" x="0" y="0" width="200" height="200"/>
+</svg>
