@@ -58,6 +58,7 @@ def setup() -> Assistant:
             "Paphos Gardens is the place where students live.",
             "Provide the answer in telegram messenger format using emojis.",
             "Add link to the most important source which you used to find the answer.",
+            "If the question is not related to the CSAI program or life in Cyprus or if the question is inappropriate, respond with 'I am sorry, I cannot answer this question.'",
             "Provide clear, concise and very detailed answers.",
         ],
         show_tool_calls=False,
@@ -122,7 +123,7 @@ async def callback_rating(query: types.CallbackQuery):
 
 @dp.callback_query(lambda c: c.data == 'feedback')
 async def callback_feedback(query: types.CallbackQuery, state: FSMContext):
-    await query.message.edit_text(query.message.text, reply_markup=None)
+    await query.message.edit_text(query.message.text, reply_markup=None, parse_mode="Markdown")
     await query.answer()
     await query.message.reply(messages.FEEDBACK_REQUEST)
     await state.set_state(FeedbackStates.waiting_for_feedback)
