@@ -1,4 +1,4 @@
-START_MESSAGE = "Hello!\nTo ask a question use /ask\nTo see the full list of commands use /help"
+START_MESSAGE = "Hello!\nTo ask a question to the bot, just send it to this chat\nTo see more information use /help"
 HELP_MESSAGE = (
     "Welcome to the CSAI Q&A Bot! Here's how I can assist you:\n\n"
     "Submit a question, and I will provide you with a detailed response.\n"
