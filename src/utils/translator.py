@@ -15,7 +15,7 @@ async def translate_text_with_openai(text: str, target_language="english") -> st
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": f"Translate the following text to {target_language}. Don't remove any links."},
+                {"role": "system", "content": f"Just translate the following text to {target_language}. Don't remove any links. If it is in {target_language}, just copy it."},
                 {"role": "user", "content": text},
             ]
         )

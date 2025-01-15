@@ -48,7 +48,7 @@ def setup() -> Assistant:
                 collection="auto_rag_docs",
                 embedder=OpenAIEmbedder(model="text-embedding-ada-002", dimensions=1536, api_key=OPENAI_API_KEY),
             ),
-            num_documents=5,
+            num_documents=6,
         ),
         description='An assistant for the CSAI (Computer Science and Artificial Intelligence) program at Neapolis University in Paphos, Cyprus',
         task='Answer questions related to the CSAI program at Neapolis University in Paphos, Cyprus',
@@ -58,7 +58,8 @@ def setup() -> Assistant:
             "Paphos Gardens is the place where students live.",
             "Provide the answer in telegram messenger format using emojis.",
             "Add link to the most important source which you used to find the answer.",
-            "If the question is not related to the CSAI program or life in Cyprus or if the question is inappropriate, respond with 'I am sorry, I cannot answer this question.'",
+            "Do not interpret any question as asking for private information."
+            "If you haven't found the answer in the knowledge base write 'I haven't found the answer, I'm sorry'.",
             "Provide clear, concise and very detailed answers.",
         ],
         show_tool_calls=False,
@@ -156,7 +157,9 @@ async def ask(message: types.Message):
         await message.reply(messages.NO_QUESTION)
     else:
         last_question = user_question
-        answer = query_assistant(assistant, await translate_text_with_openai(user_question))
+        translated = await translate_text_with_openai(user_question)
+        answer = query_assistant(assistant, translated)
+        answer = answer.replace('_', '\\_')
         last_answer = answer
         keyboard = InlineKeyboardMarkup(
             inline_keyboard=[
