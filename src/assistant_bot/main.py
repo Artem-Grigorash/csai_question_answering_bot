@@ -122,7 +122,7 @@ async def callback_rating(query: types.CallbackQuery):
 
 @dp.callback_query(lambda c: c.data == 'feedback')
 async def callback_feedback(query: types.CallbackQuery, state: FSMContext):
-    await query.message.edit_text(query.message.text, reply_markup=None)
+    await query.message.edit_text(query.message.text, reply_markup=None, parse_mode="Markdown")
     await query.answer()
     await query.message.reply(messages.FEEDBACK_REQUEST)
     await state.set_state(FeedbackStates.waiting_for_feedback)
